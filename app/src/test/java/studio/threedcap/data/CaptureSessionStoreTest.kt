@@ -8,6 +8,8 @@ import org.junit.Test
 import studio.threedcap.core.CaptureManifestContract
 import java.io.File
 import java.nio.file.Files
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipInputStream
 
 class CaptureSessionStoreTest {
     @Test fun recordsExportsAndRemovesFrame() {
@@ -64,6 +66,36 @@ class CaptureSessionStoreTest {
             assertEquals(1, updated.frames.size)
             assertEquals(1, CaptureManifestContract.validate(updated).frames.size)
             assertTrue(imageB.exists())
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+    @Test fun datasetZipContainsImagesManifestAndColmapGuidance() {
+        val directory = Files.createTempDirectory("3dcap-zip-test").toFile()
+        try {
+            val bytes = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 1, 2, 3, 4)
+            val image = File(directory, "3dcap_20261123_120000_003.jpg").apply { writeBytes(bytes) }
+            val store = CaptureSessionStore(directory)
+            store.record(image, 90f, 15f)
+
+            val output = ByteArrayOutputStream()
+            store.writeDatasetZip(output)
+            val entries = mutableMapOf<String, ByteArray>()
+            ZipInputStream(output.toByteArray().inputStream()).use { zip ->
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    entries[entry.name] = zip.readBytes()
+                    zip.closeEntry()
+                }
+            }
+
+            assertTrue(entries.containsKey("manifest.json"))
+            assertTrue(entries.containsKey("COLMAP_IMPORT.txt"))
+            assertTrue(entries.containsKey("images/"))
+            assertTrue(entries.getValue("images/").contentEquals(bytes))
+            val guide = String(entries.getValue("COLMAP_IMPORT.txt"), Charsets.UTF_8)
+            assertTrue(guide.contains("NOT calibrated camera extrinsics"))
+            assertTrue(guide.contains("colmap feature_extractor"))
         } finally {
             directory.deleteRecursively()
         }
