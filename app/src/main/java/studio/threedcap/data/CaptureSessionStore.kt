@@ -29,6 +29,7 @@ class CaptureSessionStore(private val directory: File) {
             throw IllegalStateException("Could not create the private capture directory")
         }
         require(directory.isDirectory) { "Capture path is not a directory" }
+        recoverDeletionTransactions()
     }
 
     @Synchronized
@@ -39,6 +40,36 @@ class CaptureSessionStore(private val directory: File) {
         if (manifestFile.exists()) manifestFile.delete()
         backupFile.renameTo(manifestFile)
         return backup
+    }
+
+    /**
+     * Reconcile staged deletions left behind by a process/device crash.
+     * If the durable manifest still references a frame, restore its staged image.
+     * If the manifest no longer references it, finish the deletion.
+     * When neither manifest copy is valid, preserve tombstones rather than guessing.
+     */
+    private fun recoverDeletionTransactions() {
+        val durableManifest = readValid(manifestFile) ?: readValid(backupFile) ?: return
+        val referenced = durableManifest.frames.map { it.fileName }.toSet()
+        val tombstones = directory.listFiles { file -> file.isFile && file.name.endsWith(".deleting") }
+            ?: return
+        tombstones.forEach { tombstone ->
+            val originalName = tombstone.name.removeSuffix(".deleting")
+            if (!originalName.matches(Regex("^3dcap_[A-Za-z0-9_-]+\\\\.jpg$"))) return@forEach
+            val original = File(directory, originalName)
+            when {
+                originalName in referenced && !original.exists() -> {
+                    if (!tombstone.renameTo(original)) {
+                        throw IllegalStateException("Could not recover staged frame deletion: $originalName")
+                    }
+                }
+                else -> {
+                    if (!tombstone.delete()) {
+                        throw IllegalStateException("Could not clean staged frame deletion: $originalName")
+                    }
+                }
+            }
+        }
     }
 
     @Synchronized
