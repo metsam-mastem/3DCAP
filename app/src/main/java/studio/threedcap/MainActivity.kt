@@ -232,7 +232,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          ) { Text("EXPORT DATASET ZIP") }
         }
        }
-       Text("Images remain on this device. Export shares metadata only; it does not upload images.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+       Text("JSON/CSV exports contain metadata only. Dataset ZIP includes the manifest and captured images; nothing is uploaded automatically.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
        datasetQuality?.let { report ->
         Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
          Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
