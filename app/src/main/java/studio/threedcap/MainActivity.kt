@@ -45,9 +45,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val orientation = mutableStateOf(0f to 0f)
  private val capturedCount = mutableIntStateOf(0)
  private var imageCapture: ImageCapture? = null
- private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-  if (ok) setContent { Studio() }
- }
+ private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) setContent { Studio() } }
+
  override fun onCreate(savedInstanceState: Bundle?) {
   super.onCreate(savedInstanceState)
   cameraExecutor = Executors.newSingleThreadExecutor()
@@ -73,6 +72,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   val angles by orientation
   val count by capturedCount
   val progress=planner.progress()
+  val recommendation=planner.recommend(angles.first,angles.second)
   LaunchedEffect(previewView) {
    val view=previewView ?: return@LaunchedEffect
    val future=ProcessCameraProvider.getInstance(context)
@@ -103,19 +103,20 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         Column(Modifier.align(Alignment.TopStart).padding(14.dp)) { Text("LIVE VIEW",color=Color.White); Text("Yaw "+angles.first.roundToInt()+"° · Pitch "+angles.second.roundToInt()+"°",color=Color(0xFF9BF7D4)) }
         Surface(Modifier.align(Alignment.BottomCenter).padding(12.dp),color=Color(0xCC101923),shape=RoundedCornerShape(18.dp)) {
          Column(Modifier.padding(12.dp)) {
-          Text("NEXT VIEW  "+(progress.nextTarget?.yawDegrees?.toString() ?: "—")+"° / "+(progress.nextTarget?.pitchBand?.toString() ?: "—")+"°",color=Color(0xFF9BF7D4))
+          Text("NEXT VIEW  "+(recommendation.target?.yawDegrees?.toString() ?: "—")+"° / "+(recommendation.target?.pitchBand?.toString() ?: "—")+"°",color=Color(0xFF9BF7D4))
+          Text(recommendation.instruction,color=Color.White)
           Text("Coverage  "+progress.percent+"% · "+count+" frames",color=Color.White)
           LinearProgressIndicator(progress={progress.percent/100f},modifier=Modifier.fillMaxWidth().padding(top=6.dp))
          }
         }
        }
-       Text("Move slowly toward the next angle. Hold steady before capture.",color=Color.LightGray)
+       Text("Follow the live direction cue. Capture when the target is aligned and the phone is steady.",color=Color.LightGray)
        Button(onClick={takePhoto(angles.first,angles.second)},modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
       }
       "TOUR" -> {
        Text("VIRTUAL TOUR WORKSPACE",color=Color(0xFF9BF7D4))
-       Text("Offline 360° scene graph and hotspot editor are specified for the next milestone.",color=Color.White)
-       Surface(color=Color(0xFF101923),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth().weight(1f)) { Box(contentAlignment=Alignment.Center) { Text("360° TOUR CANVAS\nScene viewer foundation",color=Color.LightGray) } }
+       Text("Local panorama scenes, scene links and spatial hotspots are defined in the tour data model. Viewer/editor is next.",color=Color.White)
+       Surface(color=Color(0xFF101923),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth().weight(1f)) { Box(contentAlignment=Alignment.Center) { Text("360° TOUR CANVAS\nOffline scene graph foundation",color=Color.LightGray) } }
       }
       else -> {
        Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4)); Text(count.toString()+" frames captured in this session",color=Color.White)
