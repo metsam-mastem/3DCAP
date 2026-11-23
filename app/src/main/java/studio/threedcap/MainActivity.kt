@@ -31,6 +31,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import studio.threedcap.core.CapturePlanner
 import studio.threedcap.core.FrameQualityAnalyzer
+import studio.threedcap.core.OrientationCalibration
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -43,6 +44,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private lateinit var cameraExecutor: ExecutorService
  private lateinit var sensors: SensorManager
  private val planner = CapturePlanner()
+ private val calibration = OrientationCalibration()
+ private val calibrated = mutableStateOf(false)
  private val orientation = mutableStateOf(0f to 0f)
  private val capturedCount = mutableIntStateOf(0)
  private val qualityStatus = mutableStateOf("ANALYZING")
@@ -71,11 +74,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   val context=LocalContext.current
   var tab by remember { mutableStateOf("CAPTURE") }
   var previewView by remember { mutableStateOf<PreviewView?>(null) }
-  val angles by orientation
+  val absoluteAngles by orientation
+  val isCalibrated by calibrated
+  val angles = if (isCalibrated) calibration.toRelative(absoluteAngles.first,absoluteAngles.second) else null
   val count by capturedCount
   val quality by qualityStatus
   val progress=planner.progress()
-  val recommendation=planner.recommend(angles.first,angles.second)
+  val recommendation=angles?.let { planner.recommend(it.yaw,it.pitch) }
   LaunchedEffect(previewView) {
    val view=previewView ?: return@LaunchedEffect
    val future=ProcessCameraProvider.getInstance(context)
@@ -114,18 +119,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       "CAPTURE" -> {
        Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFF17222D),RoundedCornerShape(24.dp))) {
         AndroidView(factory={PreviewView(it).also { pv -> previewView=pv }},modifier=Modifier.fillMaxSize())
-        Column(Modifier.align(Alignment.TopStart).padding(14.dp)) { Text("LIVE VIEW",color=Color.White); Text("Yaw "+angles.first.roundToInt()+"° · Pitch "+angles.second.roundToInt()+"°",color=Color(0xFF9BF7D4)) }
+        Column(Modifier.align(Alignment.TopStart).padding(14.dp)) { Text("LIVE VIEW",color=Color.White); Text(if (angles != null) "Object yaw "+angles.yaw.roundToInt()+"° · pitch "+angles.pitch.roundToInt()+"°" else "Calibrate the object front view",color=Color(0xFF9BF7D4)) }
         Surface(Modifier.align(Alignment.BottomCenter).padding(12.dp),color=Color(0xCC101923),shape=RoundedCornerShape(18.dp)) {
          Column(Modifier.padding(12.dp)) {
-          Text("NEXT VIEW  "+(recommendation.target?.yawDegrees?.toString() ?: "—")+"° / "+(recommendation.target?.pitchBand?.toString() ?: "—")+"°",color=Color(0xFF9BF7D4))
-          Text(recommendation.instruction,color=Color.White)
+          Text("NEXT VIEW  "+(recommendation?.target?.yawDegrees?.toString() ?: "—")+"° / "+(recommendation?.target?.pitchBand?.toString() ?: "—")+"°",color=Color(0xFF9BF7D4))
+          Text(recommendation?.instruction ?: "Set the object front view to calibrate",color=Color.White)
           Text("Coverage  "+progress.percent+"% · "+count+" frames",color=Color.White)
           LinearProgressIndicator(progress={progress.percent/100f},modifier=Modifier.fillMaxWidth().padding(top=6.dp))
          }
         }
        }
-       Text(recommendation.instruction+" · FRAME QUALITY: "+quality,color=Color.LightGray)
-       Button(onClick={takePhoto(angles.first,angles.second)},enabled=recommendation.aligned,modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
+       Text((recommendation?.instruction ?: "Calibration required")+" · FRAME QUALITY: "+quality,color=Color.LightGray)
+       if (!isCalibrated) {
+        OutlinedButton(onClick={ calibration.calibrate(absoluteAngles.first,absoluteAngles.second); calibrated.value=true },modifier=Modifier.fillMaxWidth()) { Text("SET OBJECT FRONT / CALIBRATE") }
+       } else {
+        OutlinedButton(onClick={ calibration.reset(); calibrated.value=false; planner.reset(); capturedCount.intValue=0 },modifier=Modifier.fillMaxWidth()) { Text("RECALIBRATE OBJECT") }
+       }
+       Button(onClick={ angles?.let { takePhoto(it.yaw,it.pitch) } },enabled=isCalibrated && recommendation?.aligned==true,modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
       }
       "TOUR" -> {
        Text("VIRTUAL TOUR WORKSPACE",color=Color(0xFF9BF7D4))
