@@ -22,5 +22,8 @@ Baseline CameraX + rotation vector; optional Camera2 manual controls and vendor 
 ## Tour data model
 Scene = panorama + title + metadata. Hotspot = normalized spherical coordinate + target scene/content card. Route = ordered scene IDs. Tour manifest = versioned JSON and local asset references.
 
-## Deferred
-3D reconstruction, panorama import/viewer, hotspot editing, image-dataset packaging, retake workflow, and physical-device verification remain incomplete. The local library now lists sampled image thumbnails and frame metadata, supports confirmed frame deletion, shares JSON/CSV metadata manifests, and exports a ZIP containing manifest.json plus images after verifying each file's size and SHA-256. JSON/CSV remain metadata-only exports. Session persistence and restart progress restoration are implemented in the current development branch; CI and device verification remain separate gates.
+## Implemented in the current development branch
+The local library lists sampled thumbnails and frame metadata, supports confirmed deletion and confirmed same-view retake, shares JSON/CSV metadata, and exports a ZIP containing `manifest.json`, `images/`, and `COLMAP_IMPORT.txt`. Each image is checked against its recorded size and SHA-256 before packaging. The retake action removes the old frame and prioritizes its original planner yaw/pitch target; these are planner coordinates, not camera extrinsics.
+
+## Deferred / not claimed
+COLMAP reconstruction, calibrated camera intrinsics/extrinsics, panorama stitching/viewer, hotspot editing, and physical-device verification remain incomplete. The ZIP is a source-image input package with usage guidance, not a COLMAP sparse model. No `cameras.txt`, `images.txt`, or `points3D.txt` is fabricated. CI and physical-device verification are separate gates.
