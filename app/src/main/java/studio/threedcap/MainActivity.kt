@@ -74,10 +74,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  override fun onPause() { sensors.unregisterListener(this); stabilityGate.reset(); stable.value=!hasGyroscope; super.onPause() }
  override fun onDestroy() { if (::cameraExecutor.isInitialized) cameraExecutor.shutdown(); super.onDestroy() }
  override fun onSensorChanged(e: SensorEvent) {
-  if (e.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
-  val matrix=FloatArray(9); val angles=FloatArray(3)
-  SensorManager.getRotationMatrixFromVector(matrix,e.values); SensorManager.getOrientation(matrix,angles)
-  orientation.value = Math.toDegrees(angles[0].toDouble()).toFloat() to Math.toDegrees(angles[1].toDouble()).toFloat()
+  when (e.sensor.type) {
+   Sensor.TYPE_ROTATION_VECTOR -> {
+    val matrix=FloatArray(9); val angles=FloatArray(3)
+    SensorManager.getRotationMatrixFromVector(matrix,e.values); SensorManager.getOrientation(matrix,angles)
+    orientation.value = Math.toDegrees(angles[0].toDouble()).toFloat() to Math.toDegrees(angles[1].toDouble()).toFloat()
+   }
+   Sensor.TYPE_GYROSCOPE -> {
+    stable.value=stabilityGate.update(e.values[0],e.values[1],e.values[2],e.timestamp)
+   }
+  }
  }
  override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
