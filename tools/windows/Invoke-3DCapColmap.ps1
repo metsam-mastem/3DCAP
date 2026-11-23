@@ -33,6 +33,9 @@ if (-not (Test-Path -LiteralPath $ZipPath -PathType Leaf)) { throw "Dataset ZIP 
 if (-not (Test-Path -LiteralPath $ColmapPath -PathType Leaf)) { throw "COLMAP executable not found: $ColmapPath" }
 $ZipPath = (Resolve-Path -LiteralPath $ZipPath).Path
 $WorkspacePath = [System.IO.Path]::GetFullPath($WorkspacePath)
+if ((Test-Path -LiteralPath $WorkspacePath) -and (Get-ChildItem -LiteralPath $WorkspacePath -Force | Measure-Object).Count -gt 0) {
+    throw "Workspace must be empty; use a fresh folder to prevent stale files entering the reconstruction."
+}
 $imagesPath = Join-Path $WorkspacePath "images"
 $logsPath = Join-Path $WorkspacePath "logs"
 New-Item -ItemType Directory -Force -Path $WorkspacePath, $logsPath | Out-Null
@@ -60,7 +63,7 @@ foreach ($frame in $manifest.frames) {
     $hash = (Get-FileHash -LiteralPath $imagePath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($hash -ne $frame.sha256.ToLowerInvariant()) { throw "SHA-256 mismatch: $($frame.file_name)" }
 }
-if (-not (Get-ChildItem -LiteralPath $imagesPath -File | Measure-Object).Count) { throw "No input images found" }
+if ((Get-ChildItem -LiteralPath $imagesPath -File | Measure-Object).Count -eq 0) { throw "No input images found" }
 
 $database = Join-Path $WorkspacePath "database.db"
 $sparse = Join-Path $WorkspacePath "sparse"
