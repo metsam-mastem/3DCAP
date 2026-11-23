@@ -15,3 +15,17 @@ The Tour tab remains a placeholder. Panorama import/stitching, 360 navigation, h
 EXIF values shown in the library are camera metadata only. They are not calibrated intrinsics or per-image camera poses. A separate calibration-profile contract is being added for measured fx/fy/cx/cy and lens distortion; the checkerboard/ChArUco calibration capture and solve workflow is not available yet.
 
 The dataset-quality engine currently evaluates planner-angle cell coverage, duplicate cells, missing cells, EXIF availability and inconsistent image dimensions. Its readiness label is a capture-planning diagnostic, not proof that the object is fully covered or that COLMAP will reconstruct it. Blur, feature overlap, occlusion, parallax and reconstruction success are not yet measured by this report.
+
+
+## Windows reconstruction workflow
+After exporting the Dataset ZIP, install a compatible Windows COLMAP build. Open PowerShell and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\windows\Invoke-3DCapColmap.ps1 `
+  -ZipPath "D:\capture\3dcap-dataset.zip" `
+  -WorkspacePath "D:\3dcap-work\session-001" `
+  -ColmapPath "C:\COLMAP\COLMAP.bat" `
+  -Profile DRAFT
+```
+
+Use a new empty workspace folder for every run. The script validates the archive and frame hashes before starting reconstruction. It stops on a failed stage, records logs under `logs/`, and writes `run-summary.json`. DRAFT uses a 1200 px maximum undistorted image size; BALANCED uses 2000 px; HIGH uses 3200 px. Dense reconstruction can require substantial RAM/GPU resources. The script is committed but has not been executed on Windows yet.
