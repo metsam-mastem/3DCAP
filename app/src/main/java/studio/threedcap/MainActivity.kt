@@ -64,6 +64,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val qualityStatus = mutableStateOf("ANALYZING")
  private var imageCapture: ImageCapture? = null
  private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) setContent { Studio() } }
+ private val createDataset = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+  if (uri != null) {
+   try {
+    val output=contentResolver.openOutputStream(uri) ?: throw IllegalStateException("Could not open export destination")
+    captureSessionStore.writeDatasetZip(output)
+    qualityStatus.value="DATASET ZIP EXPORTED"
+   } catch (error: Exception) {
+    qualityStatus.value="DATASET EXPORT FAILED"
+    error.printStackTrace()
+   }
+  }
+ }
 
  override fun onCreate(savedInstanceState: Bundle?) {
   super.onCreate(savedInstanceState)
@@ -205,6 +217,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
            startActivity(android.content.Intent.createChooser(send, "Export capture metadata"))
           }
          ) { Text("EXPORT CSV") }
+         OutlinedButton(
+          enabled = manifest != null,
+          onClick = { createDataset.launch("3dcap-dataset.zip") }
+         ) { Text("EXPORT DATASET ZIP") }
         }
        }
        Text("Images remain on this device. Export shares metadata only; it does not upload images.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
