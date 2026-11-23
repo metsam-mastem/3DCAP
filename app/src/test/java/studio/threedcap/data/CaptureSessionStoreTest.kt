@@ -54,6 +54,39 @@ class CaptureSessionStoreTest {
         }
     }
 
+    @Test fun manifestRoundTripsOptionalCameraExifMetadata() {
+        val directory = Files.createTempDirectory("3dcap-exif-test").toFile()
+        try {
+            val image = File(directory, "3dcap_20261123_120000_011.jpg").apply {
+                writeBytes(byteArrayOf(1, 2, 3, 4, 5))
+            }
+            val store = CaptureSessionStore(directory)
+            val metadata = studio.threedcap.core.CameraCaptureMetadata(
+                imageWidth = 4000,
+                imageHeight = 3000,
+                orientation = 6,
+                cameraMake = "Example Camera Co.",
+                cameraModel = "Model X",
+                focalLengthMm = 4.25f,
+                focalLength35Mm = 26,
+                iso = 100
+            )
+            store.record(image, 45f, 10f, metadata)
+
+            val reloaded = CaptureSessionStore(directory).load()!!.frames.single()
+            assertEquals(4000, reloaded.cameraMetadata?.imageWidth)
+            assertEquals(3000, reloaded.cameraMetadata?.imageHeight)
+            assertEquals(6, reloaded.cameraMetadata?.orientation)
+            assertEquals("Example Camera Co.", reloaded.cameraMetadata?.cameraMake)
+            assertEquals("Model X", reloaded.cameraMetadata?.cameraModel)
+            assertEquals(4.25f, reloaded.cameraMetadata?.focalLengthMm)
+            assertEquals(26, reloaded.cameraMetadata?.focalLength35Mm)
+            assertEquals(100, reloaded.cameraMetadata?.iso)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
     @Test fun startupRecoversInterruptedFrameDeletion() {
         val directory = Files.createTempDirectory("3dcap-recovery-test").toFile()
         try {
