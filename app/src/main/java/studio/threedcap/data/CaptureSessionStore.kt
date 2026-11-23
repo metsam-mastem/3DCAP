@@ -110,10 +110,13 @@ class CaptureSessionStore(private val directory: File) {
                 csv(frame.capturedAt)
             ).joinToString(",")
         }
-        return (listOf(header) + rows).joinToString("\\n")
+        return (listOf(header) + rows).joinToString("\n")
     }
 
-    private fun csv(value: String): String = "\\\"$" + value.replace("\\\"", "\\\"\\\"") + "\\\""
+    private fun csv(value: String): String {
+        val escaped = value.replace("\"", "\"\"")
+        return "\"" + escaped + "\""
+    }
 
     private fun writeAtomically(manifest: CaptureManifest) {
         val json = encode(manifest).toByteArray(Charsets.UTF_8)
