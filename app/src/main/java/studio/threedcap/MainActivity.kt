@@ -73,6 +73,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    } catch (error: Exception) {
     qualityStatus.value="DATASET EXPORT FAILED"
     error.printStackTrace()
+    try {
+     android.provider.DocumentsContract.deleteDocument(contentResolver, uri)
+    } catch (cleanupError: Exception) {
+     cleanupError.printStackTrace()
+    }
    }
   }
  }
