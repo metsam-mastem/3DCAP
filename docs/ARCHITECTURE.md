@@ -34,3 +34,10 @@ Per-camera calibration is stored as a separate typed profile, not inferred from 
 
 ## Dataset quality engine (implemented as a pure analysis contract)
 The first deterministic report evaluates the existing 36 planner cells, repeated cells, missing cells, EXIF availability and mixed image dimensions. Readiness is INSUFFICIENT below 35% coverage, REVIEW below 80% or when warnings exist, and READY only at >=80% with no warnings. This report does not measure feature overlap, surface visibility, blur, exposure, parallax or reconstructability; those require separate image/geometry signals and reconstruction feedback.
+
+
+## Calibration acquisition quality gate
+A pure Kotlin sample-set analyzer now rejects sets with fewer than 8 sharp samples, fewer than 8 distinct 45-degree yaw bins, invalid orientation/dimensions, or mixed image dimensions. This is a capture-set diversity gate only; it does not detect a checkerboard/ChArUco pattern or solve camera intrinsics.
+
+## Desktop reconstruction runner
+`tools/windows/Invoke-3DCapColmap.ps1` validates ZIP paths, manifest schema, every image's byte size and SHA-256, then runs COLMAP feature extraction, exhaustive matching, sparse mapping, undistortion, PatchMatch stereo and fusion. It writes per-stage logs and a JSON summary. It requires a fresh empty workspace and a compatible COLMAP Windows executable. No Windows execution has been performed in this environment.
