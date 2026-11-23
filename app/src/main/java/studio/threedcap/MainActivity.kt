@@ -1,5 +1,6 @@
 package studio.threedcap
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -14,6 +15,7 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +30,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -213,6 +217,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          items(manifest.frames.sortedBy { it.sequence },key={it.fileName}) { frame ->
           Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
            Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            val thumbnail = remember(frame.fileName) { loadFrameThumbnail(File(filesDir,"captures/"+frame.fileName)) }
+            if (thumbnail != null) {
+             Image(bitmap=thumbnail,contentDescription="Captured frame ${frame.sequence+1}",modifier=Modifier.fillMaxWidth().height(148.dp),contentScale=ContentScale.Crop)
+            }
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
              Text("FRAME ${frame.sequence+1}",color=Color(0xFF9BF7D4),style=MaterialTheme.typography.titleMedium)
              Text("${frame.byteSize/1024} KB",color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
@@ -260,6 +268,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
    }
   }
+ }
+ private fun loadFrameThumbnail(file: File): androidx.compose.ui.graphics.ImageBitmap? {
+  if (!file.isFile) return null
+  return try {
+   val options=BitmapFactory.Options().apply { inSampleSize=8 }
+   BitmapFactory.decodeFile(file.absolutePath,options)?.asImageBitmap()
+  } catch (_: Exception) { null }
  }
  private fun takePhoto(yaw: Float,pitch: Float) {
   val capture=imageCapture ?: return
