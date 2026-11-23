@@ -70,6 +70,27 @@ class CaptureSessionStore(private val directory: File) {
         return updated
     }
 
+    @Synchronized
+    fun removeFrame(fileName: String): CaptureManifest {
+        require(fileName.matches(Regex("^3dcap_[A-Za-z0-9_-]+\\.jpg$"))) { "Invalid frame filename" }
+        val current = load() ?: throw IllegalStateException("No capture session exists")
+        val target = current.frames.firstOrNull { it.fileName == fileName }
+            ?: throw IllegalArgumentException("Frame does not exist in this session")
+        val updated = CaptureManifestContract.validate(current.copy(frames = current.frames.filterNot { it.fileName == fileName }))
+        writeAtomically(updated)
+        val image = File(directory, target.fileName)
+        if (image.exists() && !image.delete()) {
+            throw IllegalStateException("Frame was removed from the manifest but its image file could not be deleted")
+        }
+        return updated
+    }
+
+    @Synchronized
+    fun exportManifestJson(): String {
+        val current = load() ?: throw IllegalStateException("No capture session exists")
+        return encode(CaptureManifestContract.validate(current))
+    }
+
     private fun writeAtomically(manifest: CaptureManifest) {
         val json = encode(manifest).toByteArray(Charsets.UTF_8)
         FileOutputStream(temporaryFile).use { output ->
