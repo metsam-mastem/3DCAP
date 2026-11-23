@@ -54,6 +54,32 @@ class CaptureSessionStoreTest {
         }
     }
 
+    @Test fun startupRecoversInterruptedFrameDeletion() {
+        val directory = Files.createTempDirectory("3dcap-recovery-test").toFile()
+        try {
+            val image = File(directory, "3dcap_20261123_120000_009.jpg").apply {
+                writeBytes(byteArrayOf(9, 8, 7, 6))
+            }
+            val store = CaptureSessionStore(directory)
+            store.record(image, 30f, 15f)
+
+            val tombstone = File(directory, image.name + ".deleting")
+            assertTrue(image.renameTo(tombstone))
+            val recoveredStore = CaptureSessionStore(directory)
+
+            assertTrue(image.isFile)
+            assertFalse(tombstone.exists())
+            assertEquals(image.name, recoveredStore.load()?.frames?.single()?.fileName)
+
+            val orphanedTombstone = File(directory, "3dcap_20261123_120000_010.jpg.deleting")
+                .apply { writeBytes(byteArrayOf(1, 2, 3)) }
+            CaptureSessionStore(directory)
+            assertFalse(orphanedTombstone.exists())
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
     @Test fun manifestRemainsValidAfterRemoval() {
         val directory = Files.createTempDirectory("3dcap-store-test").toFile()
         try {
