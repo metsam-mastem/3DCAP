@@ -176,18 +176,32 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4))
          Text("${manifest?.frames?.size ?: 0} verified frames · app-private storage",color=Color.White)
         }
-        OutlinedButton(
-         enabled = manifest != null,
-         onClick = {
-          val json = captureSessionStore.exportManifestJson()
-          val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-           type = "application/json"
-           putExtra(android.content.Intent.EXTRA_SUBJECT, "3DCAP capture manifest")
-           putExtra(android.content.Intent.EXTRA_TEXT, json)
+        Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)) {
+         OutlinedButton(
+          enabled = manifest != null,
+          onClick = {
+           val json = captureSessionStore.exportManifestJson()
+           val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "application/json"
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "3DCAP capture manifest")
+            putExtra(android.content.Intent.EXTRA_TEXT, json)
+           }
+           startActivity(android.content.Intent.createChooser(send, "Export capture manifest"))
           }
-          startActivity(android.content.Intent.createChooser(send, "Export capture manifest"))
-         }
-        ) { Text("EXPORT JSON") }
+         ) { Text("EXPORT JSON") }
+         OutlinedButton(
+          enabled = manifest != null,
+          onClick = {
+           val csv = captureSessionStore.exportManifestCsv()
+           val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "3DCAP capture metadata")
+            putExtra(android.content.Intent.EXTRA_TEXT, csv)
+           }
+           startActivity(android.content.Intent.createChooser(send, "Export capture metadata"))
+          }
+         ) { Text("EXPORT CSV") }
+        }
        }
        Text("Images remain on this device. Export shares metadata only; it does not upload images.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
        if (manifest == null || manifest.frames.isEmpty()) {
