@@ -8,8 +8,8 @@ class CalibrationSampleSetAnalyzerTest {
 
     @Test fun acceptsDiverseSharpCalibrationViews() {
         val samples = listOf(
-            sample(0f, 0f), sample(45f, 0f), sample(90f, 0f), sample(135f, 0f),
-            sample(180f, 0f), sample(225f, 0f), sample(270f, 0f), sample(315f, 0f)
+            sample(0f, -30f), sample(45f, 0f), sample(90f, 30f), sample(135f, -30f),
+            sample(180f, 0f), sample(225f, 30f), sample(270f, -30f), sample(315f, 0f)
         )
         val report = CalibrationSampleSetAnalyzer.analyze(samples)
         assertTrue(report.accepted)
