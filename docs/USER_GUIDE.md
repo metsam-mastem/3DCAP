@@ -29,3 +29,9 @@ powershell -ExecutionPolicy Bypass -File .\tools\windows\Invoke-3DCapColmap.ps1 
 ```
 
 Use a new empty workspace folder for every run. The script validates the archive and frame hashes before starting reconstruction. It stops on a failed stage, records logs under `logs/`, and writes `run-summary.json`. DRAFT uses a 1200 px maximum undistorted image size; BALANCED uses 2000 px; HIGH uses 3200 px. Dense reconstruction can require substantial RAM/GPU resources. The script is committed but has not been executed on Windows yet.
+
+
+## Camera2 factory calibration metadata
+When the selected camera provides factory calibration, 3DCAP saves it with each captured frame: sensor intrinsics, lens distortion coefficients (where supported), sensor active-array rectangles, camera ID and sensor orientation. Some camera devices do not provide all of these fields; the absence of the data does not block capture.
+
+These values refer to the Android sensor's pre-correction coordinate system. They are shown as raw factory metadata only. 3DCAP does not yet map them to the saved JPEG's crop, scale, rotation and distortion pipeline. Do not treat them as the saved image's calibrated intrinsics or COLMAP camera parameters.

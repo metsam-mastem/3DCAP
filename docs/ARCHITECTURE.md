@@ -41,3 +41,11 @@ A pure Kotlin sample-set analyzer now rejects sets with fewer than 8 sharp sampl
 
 ## Desktop reconstruction runner
 `tools/windows/Invoke-3DCapColmap.ps1` validates ZIP paths, manifest schema, every image's byte size and SHA-256, then runs COLMAP feature extraction, exhaustive matching, sparse mapping, undistortion, PatchMatch stereo and fusion. It writes per-stage logs and a JSON summary. It requires a fresh empty workspace and a compatible COLMAP Windows executable. No Windows execution has been performed in this environment.
+
+
+## Optional Camera2 factory sensor calibration
+The Android capture adapter now reads Camera2 factory intrinsics when the selected CameraX camera exposes them: fx/fy/cx/cy/skew, camera ID, pre-correction and active sensor-array rectangles, sensor orientation, and the optional five-coefficient Brown-Conrady distortion model (API 28+). These values are preserved as raw sensor-coordinate metadata in the versioned session manifest and CSV. Absence is normal and does not block capture.
+
+**Coordinate boundary:** Android defines factory intrinsics in the sensor pre-correction active-array coordinate system. The adapter does not transform them for CameraX JPEG crop, scale, rotation, or distortion correction. They are not calibration values for the saved JPEG and must not be passed to COLMAP as image intrinsics until that mapping is measured and validated. The calibration profile contract remains separate from factory metadata.
+
+CameraX dependencies are aligned at 1.6.2 to expose the supported Camera2 interop API. This is a library upgrade, not a claim of device-level validation.

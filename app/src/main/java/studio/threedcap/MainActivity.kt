@@ -43,6 +43,7 @@ import studio.threedcap.core.OrientationCalibration
 import studio.threedcap.core.StabilityGate
 import studio.threedcap.data.CaptureSessionStore
 import studio.threedcap.data.CameraExifReader
+import studio.threedcap.data.Camera2CalibrationReader
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,6 +66,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val capturedCount = mutableIntStateOf(0)
  private val qualityStatus = mutableStateOf("ANALYZING")
  private var imageCapture: ImageCapture? = null
+ @Volatile private var camera2Calibration: studio.threedcap.core.Camera2SensorCalibration? = null
  private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) setContent { Studio() } }
  private val createDataset = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
   if (uri != null) {
@@ -148,7 +150,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       runOnUiThread { qualityStatus.value=metrics.label }
      } finally { frame.close() }
     }
-    try { provider.unbindAll(); provider.bindToLifecycle(this@MainActivity,CameraSelector.DEFAULT_BACK_CAMERA,preview,imageCapture,analysis) } catch (e: Exception) { e.printStackTrace() }
+    try {
+     provider.unbindAll()
+     val boundCamera = provider.bindToLifecycle(
+      this@MainActivity, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, analysis
+     )
+     camera2Calibration = Camera2CalibrationReader.read(boundCamera.cameraInfo)
+    } catch (e: Exception) {
+     camera2Calibration = null
+     e.printStackTrace()
+    }
    },ContextCompat.getMainExecutor(context))
   }
   MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF9BF7D4),secondary=Color(0xFF8CC8FF),background=Color(0xFF080D13),surface=Color(0xFF101923))) {
@@ -280,6 +291,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
               color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall
              )
             }
+            if (frame.cameraMetadata?.camera2Calibration != null) {
+             Text(
+              "Camera2 factory intrinsics available · raw sensor coordinates; JPEG mapping not applied",
+              color=Color(0xFFFFD27D),style=MaterialTheme.typography.labelSmall
+             )
+            }
             Text(frame.capturedAt,color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
             Text("SHA-256 ${frame.sha256.take(20)}…",color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall,fontFamily=FontFamily.Monospace)
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
@@ -368,7 +385,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
     try {
      val target=planner.markCaptured(yaw,pitch)
-     val manifest=captureSessionStore.record(file,target.yawDegrees.toFloat(),target.pitchBand.toFloat(),CameraExifReader.read(file))
+     val exifMetadata = CameraExifReader.read(file)
+     val cameraMetadata = when {
+      exifMetadata != null -> exifMetadata.copy(camera2Calibration = camera2Calibration)
+      camera2Calibration != null -> studio.threedcap.core.CameraCaptureMetadata(camera2Calibration = camera2Calibration)
+      else -> null
+     }
+     val manifest=captureSessionStore.record(
+      file,target.yawDegrees.toFloat(),target.pitchBand.toFloat(),cameraMetadata
+     )
      runOnUiThread { capturedCount.intValue=manifest.frames.size; qualityStatus.value="FRAME SAVED · SHA-256 VERIFIED" }
     } catch (error: Exception) {
      planner.reset()

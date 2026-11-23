@@ -6,6 +6,8 @@ import studio.threedcap.core.CaptureManifest
 import studio.threedcap.core.CaptureManifestContract
 import studio.threedcap.core.CapturedFrameRecord
 import studio.threedcap.core.CameraCaptureMetadata
+import studio.threedcap.core.Camera2PixelRect
+import studio.threedcap.core.Camera2SensorCalibration
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -144,7 +146,7 @@ class CaptureSessionStore(private val directory: File) {
     @Synchronized
     fun exportManifestCsv(): String {
         val current = CaptureManifestContract.validate(load() ?: throw IllegalStateException("No capture session exists"))
-        val header = "schema_version,session_id,created_at,sequence,file_name,relative_path,yaw_degrees,pitch_degrees,byte_size,sha256,captured_at,image_width,image_height,exif_orientation,camera_make,camera_model,focal_length_mm,focal_length_35mm,aperture,exposure_time_seconds,iso"
+        val header = "schema_version,session_id,created_at,sequence,file_name,relative_path,yaw_degrees,pitch_degrees,byte_size,sha256,captured_at,image_width,image_height,exif_orientation,camera_make,camera_model,focal_length_mm,focal_length_35mm,aperture,exposure_time_seconds,iso,camera2_camera_id,camera2_fx,camera2_fy,camera2_cx,camera2_cy,camera2_skew,camera2_distortion_coefficients,camera2_pre_correction_active_array,camera2_active_array,camera2_sensor_orientation_degrees"
         val rows = current.frames.sortedBy { it.sequence }.map { frame ->
             listOf(
                 current.schemaVersion.toString(),
@@ -167,7 +169,17 @@ class CaptureSessionStore(private val directory: File) {
                 frame.cameraMetadata?.focalLength35Mm?.toString().orEmpty(),
                 frame.cameraMetadata?.aperture?.toString().orEmpty(),
                 frame.cameraMetadata?.exposureTimeSeconds?.toString().orEmpty(),
-                frame.cameraMetadata?.iso?.toString().orEmpty()
+                frame.cameraMetadata?.iso?.toString().orEmpty(),
+                csv(frame.cameraMetadata?.camera2Calibration?.cameraId.orEmpty()),
+                frame.cameraMetadata?.camera2Calibration?.fx?.toString().orEmpty(),
+                frame.cameraMetadata?.camera2Calibration?.fy?.toString().orEmpty(),
+                frame.cameraMetadata?.camera2Calibration?.cx?.toString().orEmpty(),
+                frame.cameraMetadata?.camera2Calibration?.cy?.toString().orEmpty(),
+                frame.cameraMetadata?.camera2Calibration?.skew?.toString().orEmpty(),
+                csv(frame.cameraMetadata?.camera2Calibration?.distortionCoefficients?.joinToString(";").orEmpty()),
+                csv(frame.cameraMetadata?.camera2Calibration?.preCorrectionActiveArray?.toCsv().orEmpty()),
+                csv(frame.cameraMetadata?.camera2Calibration?.activeArray?.toCsv().orEmpty()),
+                frame.cameraMetadata?.camera2Calibration?.sensorOrientationDegrees?.toString().orEmpty()
             ).joinToString(",")
         }
         return (listOf(header) + rows).joinToString("\n")
@@ -253,6 +265,16 @@ class CaptureSessionStore(private val directory: File) {
     private fun JSONObject.optStringOrNull(key: String): String? =
         if (!has(key) || isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
 
+    private fun JSONObject.toCamera2Rect(): Camera2PixelRect = Camera2PixelRect(
+        left = getInt("left"),
+        top = getInt("top"),
+        right = getInt("right"),
+        bottom = getInt("bottom")
+    )
+
+    private fun Camera2PixelRect.toCsv(): String =
+        listOf(left, top, right, bottom).joinToString(";")
+
     private fun csv(value: String): String {
         val escaped = value.replace("\"", "\"\"")
         return "\"" + escaped + "\""
@@ -307,7 +329,23 @@ class CaptureSessionStore(private val directory: File) {
                             focalLength35Mm = metadata.optIntOrNull("focal_length_35mm"),
                             aperture = metadata.optDoubleOrNull("aperture")?.toFloat(),
                             exposureTimeSeconds = metadata.optDoubleOrNull("exposure_time_seconds"),
-                            iso = metadata.optIntOrNull("iso")
+                            iso = metadata.optIntOrNull("iso"),
+                            camera2Calibration = metadata.optJSONObject("camera2_calibration")?.let { calibration ->
+                                Camera2SensorCalibration(
+                                    cameraId = calibration.getString("camera_id"),
+                                    fx = calibration.getDouble("fx"),
+                                    fy = calibration.getDouble("fy"),
+                                    cx = calibration.getDouble("cx"),
+                                    cy = calibration.getDouble("cy"),
+                                    skew = calibration.getDouble("skew"),
+                                    distortionCoefficients = calibration.optJSONArray("distortion_coefficients")?.let { values ->
+                                        (0 until values.length()).map { values.getDouble(it) }
+                                    },
+                                    preCorrectionActiveArray = calibration.getJSONObject("pre_correction_active_array").toCamera2Rect(),
+                                    activeArray = calibration.getJSONObject("active_array").toCamera2Rect(),
+                                    sensorOrientationDegrees = calibration.optIntOrNull("sensor_orientation_degrees")
+                                )
+                            }
                         )
                     }
                 )
@@ -350,6 +388,36 @@ class CaptureSessionStore(private val directory: File) {
                             metadata.aperture?.let { put("aperture", it.toDouble()) }
                             metadata.exposureTimeSeconds?.let { put("exposure_time_seconds", it) }
                             metadata.iso?.let { put("iso", it) }
+                            metadata.camera2Calibration?.let { calibration ->
+                                put("camera2_calibration", JSONObject().apply {
+                                    put("camera_id", calibration.cameraId)
+                                    put("fx", calibration.fx)
+                                    put("fy", calibration.fy)
+                                    put("cx", calibration.cx)
+                                    put("cy", calibration.cy)
+                                    put("skew", calibration.skew)
+                                    calibration.distortionCoefficients?.let { coefficients ->
+                                        put("distortion_coefficients", JSONArray().apply {
+                                            coefficients.forEach { put(it) }
+                                        })
+                                    }
+                                    put("pre_correction_active_array", JSONObject().apply {
+                                        put("left", calibration.preCorrectionActiveArray.left)
+                                        put("top", calibration.preCorrectionActiveArray.top)
+                                        put("right", calibration.preCorrectionActiveArray.right)
+                                        put("bottom", calibration.preCorrectionActiveArray.bottom)
+                                    })
+                                    put("active_array", JSONObject().apply {
+                                        put("left", calibration.activeArray.left)
+                                        put("top", calibration.activeArray.top)
+                                        put("right", calibration.activeArray.right)
+                                        put("bottom", calibration.activeArray.bottom)
+                                    })
+                                    calibration.sensorOrientationDegrees?.let {
+                                        put("sensor_orientation_degrees", it)
+                                    }
+                                })
+                            }
                         })
                     }
                 })

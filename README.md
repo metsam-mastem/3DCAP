@@ -60,3 +60,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\windows\Invoke-3DCapColmap.ps1 
 ```
 
 The runner validates each source image against the manifest's size and SHA-256 before invoking COLMAP. It produces a sparse model and dense `fused.ply` when the dataset and hardware permit. Use a fresh, empty workspace. This script is not yet Windows-tested.
+
+
+## Camera metadata boundary
+The app records EXIF facts and, when exposed by the selected camera, optional Camera2 factory sensor calibration. Camera2 factory intrinsics remain in the Android sensor pre-correction active-array coordinate system; they are not transformed into saved-JPEG or COLMAP calibration parameters.

@@ -12,7 +12,8 @@ data class CameraCaptureMetadata(
     val focalLength35Mm: Int? = null,
     val aperture: Float? = null,
     val exposureTimeSeconds: Double? = null,
-    val iso: Int? = null
+    val iso: Int? = null,
+    val camera2Calibration: Camera2SensorCalibration? = null
 )
 
 data class CapturedFrameRecord(
@@ -64,6 +65,11 @@ object CaptureManifestContract {
                 require(metadata.aperture == null || metadata.aperture.isFinite() && metadata.aperture > 0f) { "Invalid EXIF aperture" }
                 require(metadata.exposureTimeSeconds == null || metadata.exposureTimeSeconds.isFinite() && metadata.exposureTimeSeconds > 0.0) { "Invalid EXIF exposure time" }
                 require(metadata.iso == null || metadata.iso > 0) { "Invalid EXIF ISO" }
+                metadata.camera2Calibration?.let { calibration ->
+                    require(Camera2SensorCalibrationContract.validate(calibration).isEmpty()) {
+                        "Invalid Camera2 sensor calibration metadata"
+                    }
+                }
             }
         }
         return manifest

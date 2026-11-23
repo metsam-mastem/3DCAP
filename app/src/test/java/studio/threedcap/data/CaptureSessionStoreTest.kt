@@ -6,6 +6,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import studio.threedcap.core.CaptureManifestContract
+import studio.threedcap.core.Camera2PixelRect
+import studio.threedcap.core.Camera2SensorCalibration
 import java.io.File
 import java.nio.file.Files
 import java.io.ByteArrayOutputStream
@@ -69,7 +71,19 @@ class CaptureSessionStoreTest {
                 cameraModel = "Model X",
                 focalLengthMm = 4.25f,
                 focalLength35Mm = 26,
-                iso = 100
+                iso = 100,
+                camera2Calibration = Camera2SensorCalibration(
+                    cameraId = "0",
+                    fx = 2800.0,
+                    fy = 2790.0,
+                    cx = 2000.0,
+                    cy = 1500.0,
+                    skew = 0.0,
+                    distortionCoefficients = listOf(-0.12, 0.03, 0.001, -0.002, 0.0005),
+                    preCorrectionActiveArray = Camera2PixelRect(0, 0, 4000, 3000),
+                    activeArray = Camera2PixelRect(0, 0, 3960, 2960),
+                    sensorOrientationDegrees = 90
+                )
             )
             store.record(image, 45f, 10f, metadata)
 
@@ -82,9 +96,20 @@ class CaptureSessionStoreTest {
             assertEquals(4.25f, reloaded.cameraMetadata?.focalLengthMm)
             assertEquals(26, reloaded.cameraMetadata?.focalLength35Mm)
             assertEquals(100, reloaded.cameraMetadata?.iso)
+            val camera2 = reloaded.cameraMetadata?.camera2Calibration
+            assertEquals("0", camera2?.cameraId)
+            assertEquals(2800.0, camera2?.fx)
+            assertEquals(2000.0, camera2?.cx)
+            assertEquals(listOf(-0.12, 0.03, 0.001, -0.002, 0.0005), camera2?.distortionCoefficients)
+            assertEquals(Camera2PixelRect(0, 0, 4000, 3000), camera2?.preCorrectionActiveArray)
+            assertEquals(Camera2PixelRect(0, 0, 3960, 2960), camera2?.activeArray)
+            assertEquals(90, camera2?.sensorOrientationDegrees)
             val csv = store.exportManifestCsv()
             assertTrue(csv.contains("camera_make"))
             assertTrue(csv.contains("Example Camera Co."))
+            assertTrue(csv.contains("camera2_camera_id"))
+            assertTrue(csv.contains("camera2_pre_correction_active_array"))
+            assertTrue(csv.contains("2800.0"))
         } finally {
             directory.deleteRecursively()
         }
