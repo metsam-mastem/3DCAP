@@ -48,4 +48,4 @@ The Android capture adapter now reads Camera2 factory intrinsics when the select
 
 **Coordinate boundary:** Android defines factory intrinsics in the sensor pre-correction active-array coordinate system. The adapter does not transform them for CameraX JPEG crop, scale, rotation, or distortion correction. They are not calibration values for the saved JPEG and must not be passed to COLMAP as image intrinsics until that mapping is measured and validated. The calibration profile contract remains separate from factory metadata.
 
-CameraX dependencies are aligned at 1.6.2 to expose the supported Camera2 interop API. This is a library upgrade, not a claim of device-level validation.
+The Camera2 bridge uses the CameraX 1.4.1 legacy Camera2CameraInfo interop surface to keep the existing AGP 8.7.3 / compileSdk 35 build stack unchanged. This avoids upgrading the Android build toolchain solely for optional metadata.

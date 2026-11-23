@@ -63,4 +63,4 @@ The runner validates each source image against the manifest's size and SHA-256 b
 
 
 ## Camera metadata boundary
-The app records EXIF facts and, when exposed by the selected camera, optional Camera2 factory sensor calibration. Camera2 factory intrinsics remain in the Android sensor pre-correction active-array coordinate system; they are not transformed into saved-JPEG or COLMAP calibration parameters.
+The app records EXIF facts and, when exposed by the selected camera, optional Camera2 factory sensor calibration. Camera2 factory intrinsics remain in the Android sensor pre-correction active-array coordinate system; they are not transformed into saved-JPEG or COLMAP calibration parameters. The optional bridge currently uses CameraX 1.4.1 to preserve the existing Android build-toolchain baseline.
