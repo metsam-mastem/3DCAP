@@ -24,5 +24,6 @@ dependencies {
  implementation("androidx.camera:camera-lifecycle:1.4.1")
  implementation("androidx.camera:camera-view:1.4.1")
  testImplementation("junit:junit:4.13.2")
+ testImplementation("org.json:json:20240303")
  debugImplementation("androidx.compose.ui:ui-tooling")
 }
