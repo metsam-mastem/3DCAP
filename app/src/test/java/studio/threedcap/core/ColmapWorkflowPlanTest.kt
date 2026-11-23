@@ -19,6 +19,13 @@ class ColmapWorkflowPlanTest {
         assertTrue(plan.stages.first { it.stage == ColmapStage.FUSION }.arguments.contains("--output_path"))
     }
 
+    @Test fun preservesWindowsDriveRootWorkspacePath() {
+        val plan = ColmapWorkflowPlan.create("C:\\", "colmap.exe", ReconstructionProfile.DRAFT)
+        assertEquals("C:\\", plan.workspacePath)
+        val featureArgs = plan.stages.first { it.stage == ColmapStage.FEATURE_EXTRACTION }.arguments
+        assertEquals("C:\\images", featureArgs[featureArgs.indexOf("--image_path") + 1])
+    }
+
     @Test fun draftProfileUsesReducedDenseImageSize() {
         val plan = ColmapWorkflowPlan.create("C:/dataset", "colmap", ReconstructionProfile.DRAFT)
         val undistort = plan.stages.first { it.stage == ColmapStage.UNDISTORT }
