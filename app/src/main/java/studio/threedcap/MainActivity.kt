@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import studio.threedcap.core.CapturePlanner
+import studio.threedcap.core.DatasetQualityAnalyzer
 import studio.threedcap.core.FrameQualityAnalyzer
 import studio.threedcap.core.OrientationCalibration
 import studio.threedcap.core.StabilityGate
@@ -192,6 +193,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       }
       else -> {
        val manifest = remember(count) { captureSessionStore.load() }
+       val datasetQuality = remember(manifest) { manifest?.let { DatasetQualityAnalyzer.analyze(it.frames) } }
        var pendingDelete by remember { mutableStateOf<String?>(null) }
        var pendingRetake by remember { mutableStateOf<String?>(null) }
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
@@ -231,6 +233,22 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
        }
        Text("Images remain on this device. Export shares metadata only; it does not upload images.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+       datasetQuality?.let { report ->
+        Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
+         Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+           Text("CAPTURE DATASET CHECK",color=Color(0xFF9BF7D4),style=MaterialTheme.typography.labelLarge)
+           Text(report.readiness.name,color=when(report.readiness.name) { "READY" -> Color(0xFF9BF7D4); "REVIEW" -> Color(0xFFFFD27D); else -> Color(0xFFFF9C9C) })
+          }
+          Text("${report.coveragePercent}% planner coverage · ${report.coveredCells}/${report.totalCells} cells · ${report.duplicateCellCount} duplicate(s)",color=Color.White)
+          LinearProgressIndicator(progress={report.coveragePercent/100f},modifier=Modifier.fillMaxWidth())
+          report.warnings.take(3).forEach { warning ->
+           Text("• $warning",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+          }
+          Text("Coverage diagnostic only; not a reconstruction guarantee.",color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
+         }
+        }
+       }
        if (manifest == null || manifest.frames.isEmpty()) {
         Box(Modifier.weight(1f).fillMaxWidth(),contentAlignment=Alignment.Center) {
          Text("No captured frames yet. Use Capture to start a session.",color=Color.LightGray)
