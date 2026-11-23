@@ -21,6 +21,10 @@ class CaptureSessionStoreTest {
             assertEquals(64, recorded.frames.single().sha256.length)
             val exported = store.exportManifestJson()
             assertTrue(exported.contains("3dcap_20261123_120000_000.jpg"))
+            val csv = store.exportManifestCsv()
+            assertTrue(csv.startsWith("schema_version,session_id,created_at"))
+            assertTrue(csv.contains("capture-"))
+            assertTrue(csv.contains("3dcap_20261123_120000_000.jpg"))
             assertEquals(1, store.load()?.frames?.size)
 
             val removed = store.removeFrame(image.name)
