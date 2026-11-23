@@ -29,8 +29,8 @@ class CapturePlanner(private val yawStep: Int = 30, private val pitchBands: List
   val pitchError = target.pitchBand - currentPitch
   val aligned = abs(yawError) <= yawTolerance && abs(pitchError) <= pitchTolerance
   val instruction = when {
-   abs(yawError) > yawTolerance -> "Rotate " + if (yawError > 0) "right" else "left" + " · " + yawError.roundToInt() + "°"
-   abs(pitchError) > pitchTolerance -> "Tilt " + if (pitchError > 0) "up" else "down" + " · " + abs(pitchError).roundToInt() + "°"
+   abs(yawError) > yawTolerance -> "Rotate " + (if (yawError > 0) "right" else "left") + " · " + yawError.roundToInt() + "°"
+   abs(pitchError) > pitchTolerance -> "Tilt " + (if (pitchError > 0) "up" else "down") + " · " + abs(pitchError).roundToInt() + "°"
    else -> "Hold steady · capture this view"
   }
   return CaptureRecommendation(target, yawError, pitchError, instruction, aligned)
