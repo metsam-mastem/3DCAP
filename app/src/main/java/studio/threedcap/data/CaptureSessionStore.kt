@@ -8,6 +8,9 @@ import studio.threedcap.core.CapturedFrameRecord
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.OutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
@@ -111,6 +114,37 @@ class CaptureSessionStore(private val directory: File) {
             ).joinToString(",")
         }
         return (listOf(header) + rows).joinToString("\n")
+    }
+
+    @Synchronized
+    fun writeDatasetZip(output: OutputStream) {
+        val current = CaptureManifestContract.validate(load() ?: throw IllegalStateException("No capture session exists"))
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry("manifest.json"))
+            zip.write(encode(current).toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+
+            current.frames.sortedBy { it.sequence }.forEach { frame ->
+                val image = File(directory, frame.fileName)
+                require(image.canonicalFile.parentFile == directory.canonicalFile && image.isFile) {
+                    "Missing or unsafe image file: ${frame.fileName}"
+                }
+                require(image.length() == frame.byteSize && sha256(image) == frame.sha256) {
+                    "Image integrity check failed: ${frame.fileName}"
+                }
+                zip.putNextEntry(ZipEntry("images/${frame.fileName}"))
+                FileInputStream(image).use { input ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        if (read > 0) zip.write(buffer, 0, read)
+                    }
+                }
+                zip.closeEntry()
+            }
+            zip.finish()
+        }
     }
 
     private fun csv(value: String): String {
