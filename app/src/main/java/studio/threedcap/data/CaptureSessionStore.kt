@@ -124,6 +124,36 @@ class CaptureSessionStore(private val directory: File) {
             zip.write(encode(current).toByteArray(Charsets.UTF_8))
             zip.closeEntry()
 
+            zip.putNextEntry(ZipEntry("COLMAP_IMPORT.txt"))
+            zip.write(
+                """
+                3DCAP -> COLMAP input package
+
+                The images/ directory contains the captured source photographs.
+                manifest.json is the 3DCAP session manifest. Its yaw/pitch values
+                are capture-planner targets, NOT calibrated camera extrinsics or
+                camera poses. This package intentionally does not fabricate
+                cameras.txt, images.txt, or points3D.txt.
+
+                Example COLMAP CLI workflow (run from this extracted directory):
+
+                  colmap feature_extractor --database_path database.db --image_path images
+                  colmap exhaustive_matcher --database_path database.db
+                  mkdir -p sparse
+                  colmap mapper --database_path database.db --image_path images --output_path sparse
+
+                Use a COLMAP build whose CLI supports these commands/options.
+                Inspect camera grouping and reconstruction quality before use.
+                A sparse model is produced only if image overlap, texture,
+                calibration assumptions, and matching are sufficient.
+
+                For metric or pose-accurate reconstruction, capture calibrated
+                camera intrinsics and a reliable per-image camera pose source.
+                The current 3DCAP yaw/pitch guidance is not a substitute.
+                """.trimIndent().toByteArray(Charsets.UTF_8)
+            )
+            zip.closeEntry()
+
             current.frames.sortedBy { it.sequence }.forEach { frame ->
                 val image = File(directory, frame.fileName)
                 require(image.canonicalFile.parentFile == directory.canonicalFile && image.isFile) {
