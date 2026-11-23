@@ -55,7 +55,7 @@ class CaptureSessionStore(private val directory: File) {
             ?: return
         tombstones.forEach { tombstone ->
             val originalName = tombstone.name.removeSuffix(".deleting")
-            if (!originalName.matches(Regex("^3dcap_[A-Za-z0-9_-]+\\\\.jpg$"))) return@forEach
+            if (!originalName.matches(Regex("^3dcap_[A-Za-z0-9_-]+\\.jpg$"))) return@forEach
             val original = File(directory, originalName)
             when {
                 originalName in referenced && !original.exists() -> {
