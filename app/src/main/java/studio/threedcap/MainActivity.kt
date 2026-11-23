@@ -33,6 +33,7 @@ import studio.threedcap.core.CapturePlanner
 import studio.threedcap.core.FrameQualityAnalyzer
 import studio.threedcap.core.OrientationCalibration
 import studio.threedcap.core.StabilityGate
+import studio.threedcap.data.CaptureSessionStore
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,6 +45,7 @@ import kotlin.math.roundToInt
 class MainActivity : ComponentActivity(), SensorEventListener {
  private lateinit var cameraExecutor: ExecutorService
  private lateinit var sensors: SensorManager
+ private lateinit var captureSessionStore: CaptureSessionStore
  private val planner = CapturePlanner()
  private val calibration = OrientationCalibration()
  private val calibrated = mutableStateOf(false)
@@ -60,6 +62,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   super.onCreate(savedInstanceState)
   cameraExecutor = Executors.newSingleThreadExecutor()
   sensors = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+  captureSessionStore = CaptureSessionStore(File(filesDir,"captures"))
+  captureSessionStore.load()?.frames?.forEach { frame -> planner.markCaptured(frame.yawDegrees,frame.pitchDegrees) }
+  capturedCount.intValue = planner.progress().captured
   if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) setContent { Studio() }
   else askCamera.launch(Manifest.permission.CAMERA)
  }
@@ -176,8 +181,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   val file=File(folder,"3dcap_"+stamp+".jpg")
   capture.takePicture(ImageCapture.OutputFileOptions.Builder(file).build(),cameraExecutor,object:ImageCapture.OnImageSavedCallback {
    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-    planner.markCaptured(yaw,pitch)
-    runOnUiThread { capturedCount.intValue=planner.progress().captured }
+    try {
+     val target=planner.markCaptured(yaw,pitch)
+     val manifest=captureSessionStore.record(file,target.yawDegrees.toFloat(),target.pitchBand.toFloat())
+     runOnUiThread { capturedCount.intValue=manifest.frames.size; qualityStatus.value="FRAME SAVED · SHA-256 VERIFIED" }
+    } catch (error: Exception) {
+     planner.reset()
+     captureSessionStore.load()?.frames?.forEach { frame -> planner.markCaptured(frame.yawDegrees,frame.pitchDegrees) }
+     runOnUiThread { capturedCount.intValue=planner.progress().captured; qualityStatus.value="MANIFEST SAVE FAILED" }
+     error.printStackTrace()
+    }
    }
    override fun onError(exception: ImageCaptureException) { exception.printStackTrace() }
   })
