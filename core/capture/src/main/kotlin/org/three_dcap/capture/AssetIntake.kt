@@ -28,7 +28,7 @@ object AssetIntake {
         var prefixCount = 0
         var total = 0L
         try {
-            Files.newInputStream(path).use { input ->
+            Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS).use { input ->
                 val buffer = ByteArray(64 * 1024)
                 while (true) {
                     val read = input.read(buffer)
