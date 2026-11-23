@@ -22,6 +22,8 @@ data class CalibrationSampleSetReport(
 object CalibrationSampleSetAnalyzer {
     private const val MIN_SAMPLES = 8
     private const val YAW_BIN_DEGREES = 45
+    private const val PITCH_BIN_DEGREES = 20f
+    private const val MIN_PITCH_BINS = 3
 
     fun analyze(samples: List<CalibrationSample>): CalibrationSampleSetReport {
         val warnings = mutableListOf<String>()
@@ -44,6 +46,8 @@ object CalibrationSampleSetAnalyzer {
             ((normalized / YAW_BIN_DEGREES).roundToInt() * YAW_BIN_DEGREES) % 360
         }.toSet()
         if (yawBins.size < MIN_SAMPLES) warnings += "At least $MIN_SAMPLES distinct yaw bins are required"
+        val pitchBins = sharpSamples.map { ((it.pitchDegrees + 90f) / PITCH_BIN_DEGREES).toInt() }.toSet()
+        if (pitchBins.size < MIN_PITCH_BINS) warnings += "Calibration samples must include at least $MIN_PITCH_BINS distinct tilt bands"
 
         return CalibrationSampleSetReport(
             totalCount = samples.size,
