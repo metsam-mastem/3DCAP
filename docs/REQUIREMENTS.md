@@ -9,7 +9,7 @@ FR-02 Offline operation after installation.
 FR-03 Sensor yaw/pitch when rotation-vector sensor exists.
 FR-04 Deterministic coverage plan with duplicate suppression.
 FR-05 Next-shot target and progress.
-FR-06 Session-safe storage and recovery manifest.
+FR-06 Session-safe storage and recovery manifest. (Implemented in the current development branch; CI verification pending.)
 FR-07 Review, retake and delete frames.
 FR-08 JPEG + metadata + COLMAP-compatible export.
 FR-09 360 panorama import and interactive viewer.
