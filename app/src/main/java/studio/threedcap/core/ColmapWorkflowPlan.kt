@@ -1,7 +1,5 @@
 package studio.threedcap.core
 
-import java.io.File
-
 enum class ReconstructionProfile { DRAFT, BALANCED, HIGH }
 enum class ColmapStage {
     VALIDATE_INPUT, FEATURE_EXTRACTION, MATCHING, SPARSE_MAPPING, UNDISTORT, DENSE_STEREO, FUSION
