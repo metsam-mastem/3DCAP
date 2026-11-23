@@ -82,6 +82,19 @@ class CaptureSessionStoreTest {
             assertEquals(4.25f, reloaded.cameraMetadata?.focalLengthMm)
             assertEquals(26, reloaded.cameraMetadata?.focalLength35Mm)
             assertEquals(100, reloaded.cameraMetadata?.iso)
+            val csv = store.exportManifestCsv()
+            assertTrue(csv.contains("camera_make"))
+            assertTrue(csv.contains("Example Camera Co."))
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test fun exifReaderIgnoresFilesWithoutReadableExif() {
+        val directory = Files.createTempDirectory("3dcap-invalid-exif-test").toFile()
+        try {
+            val invalidImage = File(directory, "not-an-image.jpg").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
+            assertEquals(null, CameraExifReader.read(invalidImage))
         } finally {
             directory.deleteRecursively()
         }
