@@ -3,6 +3,7 @@ package studio.threedcap.data
 import androidx.exifinterface.media.ExifInterface
 import studio.threedcap.core.CameraCaptureMetadata
 import java.io.File
+import java.io.FileInputStream
 
 /**
  * Reads camera facts recorded by the camera pipeline.
@@ -10,7 +11,7 @@ import java.io.File
  */
 object CameraExifReader {
     fun read(file: File): CameraCaptureMetadata? {
-        if (!file.isFile) return null
+        if (!file.isFile || !hasJpegSignature(file)) return null
         return try {
             val exif = ExifInterface(file)
             val metadata = CameraCaptureMetadata(
@@ -39,6 +40,19 @@ object CameraExifReader {
             }
         } catch (_: Exception) {
             null
+        }
+    }
+    private fun hasJpegSignature(file: File): Boolean {
+        return try {
+            FileInputStream(file).use { input ->
+                val header = ByteArray(3)
+                input.read(header) == header.size &&
+                    header[0] == 0xFF.toByte() &&
+                    header[1] == 0xD8.toByte() &&
+                    header[2] == 0xFF.toByte()
+            }
+        } catch (_: Exception) {
+            false
         }
     }
 }

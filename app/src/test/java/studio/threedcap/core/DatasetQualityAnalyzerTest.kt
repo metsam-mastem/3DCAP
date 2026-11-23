@@ -33,7 +33,8 @@ class DatasetQualityAnalyzerTest {
     @Test fun flagsMixedImageDimensionsAndMissingExifAsReviewSignals() {
         val a = frame(0, 0f).copy(cameraMetadata = CameraCaptureMetadata(imageWidth = 4000, imageHeight = 3000))
         val b = frame(1, 30f).copy(cameraMetadata = CameraCaptureMetadata(imageWidth = 3000, imageHeight = 2000))
-        val report = DatasetQualityAnalyzer.analyze(listOf(a, b))
+        val withoutExif = frame(2, 60f)
+        val report = DatasetQualityAnalyzer.analyze(listOf(a, b, withoutExif))
         assertTrue(report.warnings.any { it.contains("dimensions") })
         assertTrue(report.warnings.any { it.contains("EXIF") })
     }

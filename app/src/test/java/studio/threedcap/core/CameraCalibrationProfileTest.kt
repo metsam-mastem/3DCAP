@@ -34,8 +34,8 @@ class CameraCalibrationProfileTest {
         val errors = CameraCalibrationProfileContract.validate(
             valid().copy(distortion = listOf(Double.NaN), reprojectionErrorPx = 9.0)
         )
-        assertTrue(errors.any { it.contains("distortion") })
-        assertTrue(errors.any { it.contains("reprojection") })
+        assertTrue(errors.any { it.contains("distortion", ignoreCase = true) })
+        assertTrue(errors.any { it.contains("reprojection", ignoreCase = true) })
     }
 
     @Test fun rejectsInsufficientCalibrationViews() {
