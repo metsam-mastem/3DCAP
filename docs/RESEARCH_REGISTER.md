@@ -19,8 +19,6 @@ No third-party source code was copied into this repository. These projects infor
 | https://github.com/illerin/PanoPath | Panorama editor, scene graph, floor-plan pins and self-hosted offline export | License must be confirmed before reuse |
 | https://github.com/RohaCode/Orbix | 26-position guided 360 capture, local stitch and sensor viewer concept | Public repository is a landing page; README says app source is private |
 | https://github.com/freeKC/Immuch360 | Cross-platform 360 / VR180 / panorama / Gaussian Splat viewer | AGPL-3.0; evaluate as a separate viewer dependency |
-| https://www.hackster.io/Nazrim/open3dscanner-e4321a | Smartphone + ESP32 + stepper turntable + controlled lighting; automated multi-view acquisition | CC BY-NC-SA 4.0; design inspiration only, not suitable for unrestricted commercial reuse |
-| https://www.hackster.io/news/a-diy-3d-scanner-for-your-android-phone-27f8c9d8b05c | Low-cost Android + Arduino rotating turntable concept | Article references a DIY build; verify original CAD/firmware license before reuse |
 | https://developer.android.com/media/camera/camerax | Android camera lifecycle, preview, capture and vendor extensions | AndroidX; feature support varies |
 | https://developers.google.com/ar/develop/java/depth/overview | Optional depth and pose signal | Optional dependency; not baseline |
 
