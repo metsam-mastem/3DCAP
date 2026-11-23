@@ -6,7 +6,7 @@ Android-first, offline-first guided multi-view capture, reconstruction dataset p
 ## Runtime layers
 1. Device adapter: CameraX, rotation-vector sensor, optional Camera2 interop.
 2. Capture intelligence: deterministic yaw/pitch coverage; next-view target; future blur, exposure, overlap and parallax scoring.
-3. Session store: app-private images and versioned JSON manifest.
+3. Session store: app-private images, versioned JSON manifest, frame orientation and sequence metadata, streaming SHA-256, atomic manifest replacement and backup recovery.
 4. Reconstruction adapters: COLMAP export first; optional MVE/OpenMVS and Gaussian Splatting subject to ABI, RAM, GPU and thermal capability.
 5. Tour runtime: equirectangular panoramas, scene graph, hotspots, offline navigation and export.
 
