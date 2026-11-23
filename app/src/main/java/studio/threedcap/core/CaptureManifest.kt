@@ -2,6 +2,19 @@ package studio.threedcap.core
 
 import java.time.Instant
 
+data class CameraCaptureMetadata(
+    val imageWidth: Int? = null,
+    val imageHeight: Int? = null,
+    val orientation: Int? = null,
+    val cameraMake: String? = null,
+    val cameraModel: String? = null,
+    val focalLengthMm: Float? = null,
+    val focalLength35Mm: Int? = null,
+    val aperture: Float? = null,
+    val exposureTimeSeconds: Double? = null,
+    val iso: Int? = null
+)
+
 data class CapturedFrameRecord(
     val sequence: Int,
     val fileName: String,
@@ -10,7 +23,8 @@ data class CapturedFrameRecord(
     val pitchDegrees: Float,
     val byteSize: Long,
     val sha256: String,
-    val capturedAt: String
+    val capturedAt: String,
+    val cameraMetadata: CameraCaptureMetadata? = null
 )
 
 data class CaptureManifest(
@@ -41,6 +55,16 @@ object CaptureManifestContract {
             require(frame.byteSize > 0) { "Frame size must be positive" }
             require(sha256Pattern.matches(frame.sha256)) { "Invalid SHA-256 digest" }
             require(isTimestamp(frame.capturedAt)) { "capturedAt must be an ISO-8601 instant" }
+            frame.cameraMetadata?.let { metadata ->
+                require(metadata.imageWidth == null || metadata.imageWidth > 0) { "Invalid EXIF image width" }
+                require(metadata.imageHeight == null || metadata.imageHeight > 0) { "Invalid EXIF image height" }
+                require(metadata.orientation == null || metadata.orientation in 1..8) { "Invalid EXIF orientation" }
+                require(metadata.focalLengthMm == null || metadata.focalLengthMm.isFinite() && metadata.focalLengthMm > 0f) { "Invalid EXIF focal length" }
+                require(metadata.focalLength35Mm == null || metadata.focalLength35Mm > 0) { "Invalid 35mm-equivalent focal length" }
+                require(metadata.aperture == null || metadata.aperture.isFinite() && metadata.aperture > 0f) { "Invalid EXIF aperture" }
+                require(metadata.exposureTimeSeconds == null || metadata.exposureTimeSeconds.isFinite() && metadata.exposureTimeSeconds > 0.0) { "Invalid EXIF exposure time" }
+                require(metadata.iso == null || metadata.iso > 0) { "Invalid EXIF ISO" }
+            }
         }
         return manifest
     }
