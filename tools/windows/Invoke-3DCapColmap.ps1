@@ -53,6 +53,8 @@ $manifestPath = Join-Path $WorkspacePath "manifest.json"
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw "manifest.json is missing" }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 if ($manifest.schema_version -ne 1 -or -not $manifest.frames) { throw "Unsupported or empty 3DCAP manifest" }
+$frameNames = @($manifest.frames | ForEach-Object { $_.file_name })
+if (($frameNames | Select-Object -Unique).Count -ne $frameNames.Count) { throw "Manifest contains duplicate frame filenames" }
 
 foreach ($frame in $manifest.frames) {
     if ($frame.file_name -notmatch '^3dcap_[A-Za-z0-9_-]+\.jpg$') { throw "Unsafe frame name: $($frame.file_name)" }
@@ -63,7 +65,9 @@ foreach ($frame in $manifest.frames) {
     $hash = (Get-FileHash -LiteralPath $imagePath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($hash -ne $frame.sha256.ToLowerInvariant()) { throw "SHA-256 mismatch: $($frame.file_name)" }
 }
-if ((Get-ChildItem -LiteralPath $imagesPath -File | Measure-Object).Count -eq 0) { throw "No input images found" }
+$imageFileCount = (Get-ChildItem -LiteralPath $imagesPath -File | Measure-Object).Count
+if ($imageFileCount -eq 0) { throw "No input images found" }
+if ($imageFileCount -ne $manifest.frames.Count) { throw "Image directory contains files not listed in the manifest" }
 
 $database = Join-Path $WorkspacePath "database.db"
 $sparse = Join-Path $WorkspacePath "sparse"
