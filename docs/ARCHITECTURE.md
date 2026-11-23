@@ -27,3 +27,10 @@ The local library lists sampled thumbnails and frame metadata, supports confirme
 
 ## Deferred / not claimed
 COLMAP reconstruction, calibrated camera intrinsics/extrinsics, panorama stitching/viewer, hotspot editing, and physical-device verification remain incomplete. The ZIP is a source-image input package with usage guidance, not a COLMAP sparse model. No `cameras.txt`, `images.txt`, or `points3D.txt` is fabricated. CI and physical-device verification are separate gates.
+
+
+## Calibration profile contract (implemented; calibration solver deferred)
+Per-camera calibration is stored as a separate typed profile, not inferred from EXIF. The profile records image dimensions, camera model, fx/fy/cx/cy, distortion coefficients, calibration pattern, sample-view count, reprojection error and timestamp. The contract currently accepts at least 8 calibration views and reprojection error <= 2.0 px. These are initial acceptance limits, not a claim that any profile has been measured or validated on a device. Checkerboard/ChArUco detection, intrinsic solving, profile persistence and UI are not implemented yet.
+
+## Dataset quality engine (implemented as a pure analysis contract)
+The first deterministic report evaluates the existing 36 planner cells, repeated cells, missing cells, EXIF availability and mixed image dimensions. Readiness is INSUFFICIENT below 35% coverage, REVIEW below 80% or when warnings exist, and READY only at >=80% with no warnings. This report does not measure feature overlap, surface visibility, blur, exposure, parallax or reconstructability; those require separate image/geometry signals and reconstruction feedback.
