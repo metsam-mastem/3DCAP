@@ -91,8 +91,8 @@ class CaptureSessionStoreTest {
 
             assertTrue(entries.containsKey("manifest.json"))
             assertTrue(entries.containsKey("COLMAP_IMPORT.txt"))
-            assertTrue(entries.containsKey("images/"))
-            assertTrue(entries.getValue("images/").contentEquals(bytes))
+            assertTrue(entries.containsKey("images/" + image.name))
+            assertTrue(entries.getValue("images/" + image.name).contentEquals(bytes))
             val guide = String(entries.getValue("COLMAP_IMPORT.txt"), Charsets.UTF_8)
             assertTrue(guide.contains("NOT calibrated camera extrinsics"))
             assertTrue(guide.contains("colmap feature_extractor"))
