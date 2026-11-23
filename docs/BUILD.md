@@ -19,7 +19,7 @@ gradle assembleDebug
 The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## CI artifact
-The GitHub Actions workflow runs unit tests, lint and APK assembly. On a successful run, download the `3DCAP-debug-apk` artifact from the workflow run's Artifacts section.
+The GitHub Actions workflow runs unit tests, lint and APK assembly on pull requests. It also exposes `workflow_dispatch` for manual verification when a commit was authored through an automation token and did not trigger a new run. On a successful run, download the `3DCAP-debug-apk` artifact from the workflow run's Artifacts section.
 
 ## Device validation still required
 The CI build cannot validate camera sensor axes, exposure/sharpness thresholds, autofocus behaviour, thermal performance or UI smoothness on a physical phone. Test on the target device before treating the build as a release.
