@@ -32,6 +32,7 @@ import androidx.core.content.ContextCompat
 import studio.threedcap.core.CapturePlanner
 import studio.threedcap.core.FrameQualityAnalyzer
 import studio.threedcap.core.OrientationCalibration
+import studio.threedcap.core.StabilityGate
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,6 +47,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val planner = CapturePlanner()
  private val calibration = OrientationCalibration()
  private val calibrated = mutableStateOf(false)
+ private val stabilityGate = StabilityGate()
+ private val stable = mutableStateOf(false)
+ private var hasGyroscope = false
  private val orientation = mutableStateOf(0f to 0f)
  private val capturedCount = mutableIntStateOf(0)
  private val qualityStatus = mutableStateOf("ANALYZING")
@@ -59,8 +63,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) setContent { Studio() }
   else askCamera.launch(Manifest.permission.CAMERA)
  }
- override fun onResume() { super.onResume(); sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let { sensors.registerListener(this,it,SensorManager.SENSOR_DELAY_GAME) } }
- override fun onPause() { sensors.unregisterListener(this); super.onPause() }
+ override fun onResume() {
+  super.onResume()
+  sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let { sensors.registerListener(this,it,SensorManager.SENSOR_DELAY_GAME) }
+  val gyro=sensors.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+  hasGyroscope=gyro != null
+  if (gyro != null) sensors.registerListener(this,gyro,SensorManager.SENSOR_DELAY_GAME)
+  else stable.value=true
+ }
+ override fun onPause() { sensors.unregisterListener(this); stabilityGate.reset(); stable.value=!hasGyroscope; super.onPause() }
  override fun onDestroy() { if (::cameraExecutor.isInitialized) cameraExecutor.shutdown(); super.onDestroy() }
  override fun onSensorChanged(e: SensorEvent) {
   if (e.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
@@ -76,6 +87,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   var previewView by remember { mutableStateOf<PreviewView?>(null) }
   val absoluteAngles by orientation
   val isCalibrated by calibrated
+  val isStable by stable
   val angles = if (isCalibrated) calibration.toRelative(absoluteAngles.first,absoluteAngles.second) else null
   val count by capturedCount
   val quality by qualityStatus
@@ -129,13 +141,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          }
         }
        }
-       Text((recommendation?.instruction ?: "Calibration required")+" · FRAME QUALITY: "+quality,color=Color.LightGray)
+       Text((recommendation?.instruction ?: "Calibration required")+" · "+(if (isStable) "STABLE" else "HOLD STEADY")+" · FRAME: "+quality,color=Color.LightGray)
        if (!isCalibrated) {
         OutlinedButton(onClick={ calibration.calibrate(absoluteAngles.first,absoluteAngles.second); calibrated.value=true },modifier=Modifier.fillMaxWidth()) { Text("SET OBJECT FRONT / CALIBRATE") }
        } else {
         OutlinedButton(onClick={ calibration.reset(); calibrated.value=false; planner.reset(); capturedCount.intValue=0 },modifier=Modifier.fillMaxWidth()) { Text("RECALIBRATE OBJECT") }
        }
-       Button(onClick={ angles?.let { takePhoto(it.yaw,it.pitch) } },enabled=isCalibrated && recommendation?.aligned==true,modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
+       Button(onClick={ angles?.let { takePhoto(it.yaw,it.pitch) } },enabled=isCalibrated && recommendation?.aligned==true && isStable,modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
       }
       "TOUR" -> {
        Text("VIRTUAL TOUR WORKSPACE",color=Color(0xFF9BF7D4))
