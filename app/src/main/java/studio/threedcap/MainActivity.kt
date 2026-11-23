@@ -41,6 +41,7 @@ import studio.threedcap.core.FrameQualityAnalyzer
 import studio.threedcap.core.OrientationCalibration
 import studio.threedcap.core.StabilityGate
 import studio.threedcap.data.CaptureSessionStore
+import studio.threedcap.data.CameraExifReader
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -249,6 +250,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
             Text(frame.fileName,color=Color.White,style=MaterialTheme.typography.bodySmall)
             Text("Yaw ${frame.yawDegrees}° · Pitch ${frame.pitchDegrees}°",color=Color.LightGray)
+            frame.cameraMetadata?.let { metadata ->
+             Text(
+              listOfNotNull(
+               metadata.cameraMake,
+               metadata.cameraModel,
+               metadata.imageWidth?.let { width -> metadata.imageHeight?.let { height -> "${width}×${height}" } },
+               metadata.focalLengthMm?.let { "${it} mm" },
+               metadata.iso?.let { "ISO ${it}" }
+              ).joinToString(" · "),
+              color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall
+             )
+            }
             Text(frame.capturedAt,color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
             Text("SHA-256 ${frame.sha256.take(20)}…",color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall,fontFamily=FontFamily.Monospace)
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
@@ -337,7 +350,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
     try {
      val target=planner.markCaptured(yaw,pitch)
-     val manifest=captureSessionStore.record(file,target.yawDegrees.toFloat(),target.pitchBand.toFloat())
+     val manifest=captureSessionStore.record(file,target.yawDegrees.toFloat(),target.pitchBand.toFloat(),CameraExifReader.read(file))
      runOnUiThread { capturedCount.intValue=manifest.frames.size; qualityStatus.value="FRAME SAVED · SHA-256 VERIFIED" }
     } catch (error: Exception) {
      planner.reset()
