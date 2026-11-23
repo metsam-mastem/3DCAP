@@ -22,10 +22,10 @@ This repository was empty at initialization. The first implementation milestone 
 
 ## Build
 
-Requires JDK 17 and Android SDK 35.
+Requires JDK 17, Android SDK 35, and Gradle 8.9. The repository currently uses the installed Gradle command in CI (no Gradle wrapper is checked in).
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
+gradle testDebugUnitTest lintDebug assembleDebug
 ```
 
 ## Privacy
