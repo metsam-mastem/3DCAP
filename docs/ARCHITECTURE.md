@@ -23,4 +23,4 @@ Baseline CameraX + rotation vector; optional Camera2 manual controls and vendor 
 Scene = panorama + title + metadata. Hotspot = normalized spherical coordinate + target scene/content card. Route = ordered scene IDs. Tour manifest = versioned JSON and local asset references.
 
 ## Deferred
-3D reconstruction, panorama import/viewer, hotspot editing, dataset export, gallery review/retake/delete, and physical-device verification remain incomplete. Session manifest persistence and restart progress restoration are implemented in the current development branch; CI and device verification remain separate gates.
+3D reconstruction, panorama import/viewer, hotspot editing, image-dataset packaging, retake workflow, and physical-device verification remain incomplete. The local library now lists captured-frame metadata, supports confirmed frame deletion, and shares JSON/CSV metadata manifests; image files themselves are not included in these exports. Session persistence and restart progress restoration are implemented in the current development branch; CI and device verification remain separate gates.
