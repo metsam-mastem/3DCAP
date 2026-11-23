@@ -96,57 +96,7 @@ if ($manifest.schema_version -ne 1 -or $frames.Count -eq 0) {
 $seenFrameNames = @{}
 foreach ($frame in $frames) {
     $frameName = [string]$frame.file_name
-    if ($frameName -notmatch '^3dcap_[A-Za-z0-9_-]+\.jpg
-
-$database = Join-Path $WorkspacePath "database.db"
-$sparse = Join-Path $WorkspacePath "sparse"
-$dense = Join-Path $WorkspacePath "dense"
-$maxSize = switch ($Profile) { "DRAFT" { "1200" } "BALANCED" { "2000" } "HIGH" { "3200" } }
-New-Item -ItemType Directory -Force -Path $sparse, $dense | Out-Null
-$script:StageResults = @()
-
-try {
-    Invoke-ColmapStage "feature_extractor" @("feature_extractor", "--database_path", $database, "--image_path", $imagesPath)
-    Invoke-ColmapStage "exhaustive_matcher" @("exhaustive_matcher", "--database_path", $database)
-    Invoke-ColmapStage "mapper" @("mapper", "--database_path", $database, "--image_path", $imagesPath, "--output_path", $sparse)
-
-    $modelPath = Join-Path $sparse "0"
-    foreach ($required in @("cameras.bin", "images.bin", "points3D.bin")) {
-        if (-not (Test-Path -LiteralPath (Join-Path $modelPath $required) -PathType Leaf)) {
-            throw "Sparse model incomplete: missing $required in $modelPath"
-        }
-    }
-
-    Invoke-ColmapStage "image_undistorter" @("image_undistorter", "--image_path", $imagesPath, "--input_path", $modelPath, "--output_path", $dense, "--output_type", "COLMAP", "--max_image_size", $maxSize)
-    Invoke-ColmapStage "patch_match_stereo" @("patch_match_stereo", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--PatchMatchStereo.geom_consistency", "true")
-    Invoke-ColmapStage "stereo_fusion" @("stereo_fusion", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--input_type", "geometric", "--output_path", (Join-Path $dense "fused.ply"))
-
-    if (-not (Test-Path -LiteralPath (Join-Path $dense "fused.ply") -PathType Leaf)) { throw "Dense point cloud fused.ply was not produced" }
-    $summary = [ordered]@{
-        status = "PASS"
-        profile = $Profile
-        source_zip = $ZipPath
-        frame_count = $frames.Count
-        sparse_model = $modelPath
-        dense_point_cloud = (Join-Path $dense "fused.ply")
-        stages = $script:StageResults
-    }
-    $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    Write-Host "Reconstruction completed. Inspect run-summary.json and dense/fused.ply."
-}
-catch {
-    $failure = [ordered]@{
-        status = "FAIL"
-        profile = $Profile
-        source_zip = $ZipPath
-        frame_count = $frames.Count
-        error = $_.Exception.Message
-        stages = $script:StageResults
-    }
-    $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    throw
-}
-) {
+    if ($frameName -notmatch '^3dcap_[A-Za-z0-9_-]+\.jpg$') {
         throw "Unsafe frame name: $frameName"
     }
     if ($seenFrameNames.ContainsKey($frameName)) {
@@ -156,109 +106,13 @@ catch {
 
     $sizeText = [string]$frame.byte_size
     [long]$expectedBytes = 0
-    if ($sizeText -notmatch '^[0-9]+
-
-$database = Join-Path $WorkspacePath "database.db"
-$sparse = Join-Path $WorkspacePath "sparse"
-$dense = Join-Path $WorkspacePath "dense"
-$maxSize = switch ($Profile) { "DRAFT" { "1200" } "BALANCED" { "2000" } "HIGH" { "3200" } }
-New-Item -ItemType Directory -Force -Path $sparse, $dense | Out-Null
-$script:StageResults = @()
-
-try {
-    Invoke-ColmapStage "feature_extractor" @("feature_extractor", "--database_path", $database, "--image_path", $imagesPath)
-    Invoke-ColmapStage "exhaustive_matcher" @("exhaustive_matcher", "--database_path", $database)
-    Invoke-ColmapStage "mapper" @("mapper", "--database_path", $database, "--image_path", $imagesPath, "--output_path", $sparse)
-
-    $modelPath = Join-Path $sparse "0"
-    foreach ($required in @("cameras.bin", "images.bin", "points3D.bin")) {
-        if (-not (Test-Path -LiteralPath (Join-Path $modelPath $required) -PathType Leaf)) {
-            throw "Sparse model incomplete: missing $required in $modelPath"
-        }
-    }
-
-    Invoke-ColmapStage "image_undistorter" @("image_undistorter", "--image_path", $imagesPath, "--input_path", $modelPath, "--output_path", $dense, "--output_type", "COLMAP", "--max_image_size", $maxSize)
-    Invoke-ColmapStage "patch_match_stereo" @("patch_match_stereo", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--PatchMatchStereo.geom_consistency", "true")
-    Invoke-ColmapStage "stereo_fusion" @("stereo_fusion", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--input_type", "geometric", "--output_path", (Join-Path $dense "fused.ply"))
-
-    if (-not (Test-Path -LiteralPath (Join-Path $dense "fused.ply") -PathType Leaf)) { throw "Dense point cloud fused.ply was not produced" }
-    $summary = [ordered]@{
-        status = "PASS"
-        profile = $Profile
-        source_zip = $ZipPath
-        frame_count = $manifest.frames.Count
-        sparse_model = $modelPath
-        dense_point_cloud = (Join-Path $dense "fused.ply")
-        stages = $script:StageResults
-    }
-    $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    Write-Host "Reconstruction completed. Inspect run-summary.json and dense/fused.ply."
-}
-catch {
-    $failure = [ordered]@{
-        status = "FAIL"
-        profile = $Profile
-        error = $_.Exception.Message
-        stages = $script:StageResults
-    }
-    $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    throw
-}
- -or
+    if ($sizeText -notmatch '^[0-9]+$' -or
         -not [long]::TryParse($sizeText, [ref]$expectedBytes) -or
         $expectedBytes -le 0) {
         throw "Invalid image byte_size for frame: $frameName"
     }
     $expectedHash = [string]$frame.sha256
-    if ($expectedHash -notmatch '^[A-Fa-f0-9]{64}
-
-$database = Join-Path $WorkspacePath "database.db"
-$sparse = Join-Path $WorkspacePath "sparse"
-$dense = Join-Path $WorkspacePath "dense"
-$maxSize = switch ($Profile) { "DRAFT" { "1200" } "BALANCED" { "2000" } "HIGH" { "3200" } }
-New-Item -ItemType Directory -Force -Path $sparse, $dense | Out-Null
-$script:StageResults = @()
-
-try {
-    Invoke-ColmapStage "feature_extractor" @("feature_extractor", "--database_path", $database, "--image_path", $imagesPath)
-    Invoke-ColmapStage "exhaustive_matcher" @("exhaustive_matcher", "--database_path", $database)
-    Invoke-ColmapStage "mapper" @("mapper", "--database_path", $database, "--image_path", $imagesPath, "--output_path", $sparse)
-
-    $modelPath = Join-Path $sparse "0"
-    foreach ($required in @("cameras.bin", "images.bin", "points3D.bin")) {
-        if (-not (Test-Path -LiteralPath (Join-Path $modelPath $required) -PathType Leaf)) {
-            throw "Sparse model incomplete: missing $required in $modelPath"
-        }
-    }
-
-    Invoke-ColmapStage "image_undistorter" @("image_undistorter", "--image_path", $imagesPath, "--input_path", $modelPath, "--output_path", $dense, "--output_type", "COLMAP", "--max_image_size", $maxSize)
-    Invoke-ColmapStage "patch_match_stereo" @("patch_match_stereo", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--PatchMatchStereo.geom_consistency", "true")
-    Invoke-ColmapStage "stereo_fusion" @("stereo_fusion", "--workspace_path", $dense, "--workspace_format", "COLMAP", "--input_type", "geometric", "--output_path", (Join-Path $dense "fused.ply"))
-
-    if (-not (Test-Path -LiteralPath (Join-Path $dense "fused.ply") -PathType Leaf)) { throw "Dense point cloud fused.ply was not produced" }
-    $summary = [ordered]@{
-        status = "PASS"
-        profile = $Profile
-        source_zip = $ZipPath
-        frame_count = $manifest.frames.Count
-        sparse_model = $modelPath
-        dense_point_cloud = (Join-Path $dense "fused.ply")
-        stages = $script:StageResults
-    }
-    $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    Write-Host "Reconstruction completed. Inspect run-summary.json and dense/fused.ply."
-}
-catch {
-    $failure = [ordered]@{
-        status = "FAIL"
-        profile = $Profile
-        error = $_.Exception.Message
-        stages = $script:StageResults
-    }
-    $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $WorkspacePath "run-summary.json") -Encoding UTF8
-    throw
-}
-) {
+    if ($expectedHash -notmatch '^[A-Fa-f0-9]{64}$') {
         throw "Invalid SHA-256 digest for frame: $frameName"
     }
 
@@ -320,7 +174,7 @@ try {
         status = "PASS"
         profile = $Profile
         source_zip = $ZipPath
-        frame_count = $manifest.frames.Count
+        frame_count = $frames.Count
         sparse_model = $modelPath
         dense_point_cloud = (Join-Path $dense "fused.ply")
         stages = $script:StageResults
@@ -332,6 +186,8 @@ catch {
     $failure = [ordered]@{
         status = "FAIL"
         profile = $Profile
+        source_zip = $ZipPath
+        frame_count = $frames.Count
         error = $_.Exception.Message
         stages = $script:StageResults
     }
