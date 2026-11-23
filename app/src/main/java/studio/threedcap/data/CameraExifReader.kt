@@ -21,7 +21,7 @@ object CameraExifReader {
                 cameraModel = exif.getAttribute(ExifInterface.TAG_MODEL)?.takeIf { it.isNotBlank() },
                 focalLengthMm = exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0.0)
                     .toFloat().takeIf { it.isFinite() && it > 0f },
-                focalLength35Mm = exif.getAttributeInt(ExifInterface.TAG焦_LENGTH_IN_35MM_FILM, 0)
+                focalLength35Mm = exif.getAttributeInt(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM, 0)
                     .takeIf { it > 0 },
                 aperture = exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0.0)
                     .toFloat().takeIf { it.isFinite() && it > 0f },
