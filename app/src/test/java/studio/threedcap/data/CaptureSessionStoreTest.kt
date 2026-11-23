@@ -100,4 +100,24 @@ class CaptureSessionStoreTest {
             directory.deleteRecursively()
         }
     }
+    @Test fun datasetExportRejectsSameSizeImageTampering() {
+        val directory = Files.createTempDirectory("3dcap-tamper-test").toFile()
+        try {
+            val image = File(directory, "3dcap_20261123_120000_004.jpg").apply {
+                writeBytes(byteArrayOf(1, 2, 3, 4, 5, 6))
+            }
+            val store = CaptureSessionStore(directory)
+            store.record(image, 0f, 15f)
+            image.writeBytes(byteArrayOf(6, 5, 4, 3, 2, 1))
+
+            try {
+                store.writeDatasetZip(ByteArrayOutputStream())
+                throw AssertionError("Expected same-size image tampering to be rejected")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message.orEmpty().contains("changed during dataset export"))
+            }
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
 }
