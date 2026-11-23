@@ -1,6 +1,5 @@
 package studio.threedcap.core
 
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 data class CalibrationSample(
