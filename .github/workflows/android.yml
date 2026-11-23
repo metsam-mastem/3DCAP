@@ -4,6 +4,7 @@ concurrency:
   group: android-ci-${{ github.ref }}
   cancel-in-progress: true
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
