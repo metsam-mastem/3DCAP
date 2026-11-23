@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val capturedCount = mutableIntStateOf(0)
  private val qualityStatus = mutableStateOf("ANALYZING")
  private var imageCapture: ImageCapture? = null
- @Volatile private var camera2Calibration: studio.threedcap.core.Camera2SensorCalibration? = null
+ @Volatile private var activeCameraInfo: CameraInfo? = null
  private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) setContent { Studio() } }
  private val createDataset = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
   if (uri != null) {
@@ -155,9 +155,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
      val boundCamera = provider.bindToLifecycle(
       this@MainActivity, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, analysis
      )
-     camera2Calibration = Camera2CalibrationReader.read(boundCamera.cameraInfo)
+     activeCameraInfo = boundCamera.cameraInfo
     } catch (e: Exception) {
-     camera2Calibration = null
+     activeCameraInfo = null
      e.printStackTrace()
     }
    },ContextCompat.getMainExecutor(context))
@@ -386,6 +386,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     try {
      val target=planner.markCaptured(yaw,pitch)
      val exifMetadata = CameraExifReader.read(file)
+     // Read from the current CameraInfo for every saved frame; logical camera IDs can change.
+     val camera2Calibration = activeCameraInfo?.let { Camera2CalibrationReader.read(it) }
      val cameraMetadata = when {
       exifMetadata != null -> exifMetadata.copy(camera2Calibration = camera2Calibration)
       camera2Calibration != null -> studio.threedcap.core.CameraCaptureMetadata(camera2Calibration = camera2Calibration)
