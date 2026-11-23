@@ -80,10 +80,24 @@ class CaptureSessionStore(private val directory: File) {
         val target = current.frames.firstOrNull { it.fileName == fileName }
             ?: throw IllegalArgumentException("Frame does not exist in this session")
         val updated = CaptureManifestContract.validate(current.copy(frames = current.frames.filterNot { it.fileName == fileName }))
-        writeAtomically(updated)
         val image = File(directory, target.fileName)
-        if (image.exists() && !image.delete()) {
-            throw IllegalStateException("Frame was removed from the manifest but its image file could not be deleted")
+        require(image.canonicalFile.parentFile == directory.canonicalFile && !FilesCompat.isSymbolicLink(image)) {
+            "Frame path is unsafe"
+        }
+        val tombstone = File(directory, target.fileName + ".deleting")
+        if (tombstone.exists()) throw IllegalStateException("A previous frame deletion needs cleanup")
+        val moved = image.exists()
+        if (moved && !image.renameTo(tombstone)) {
+            throw IllegalStateException("Could not stage frame deletion")
+        }
+        try {
+            writeAtomically(updated)
+        } catch (error: Exception) {
+            if (moved && tombstone.exists()) tombstone.renameTo(image)
+            throw error
+        }
+        if (moved && tombstone.exists() && !tombstone.delete()) {
+            throw IllegalStateException("Frame was removed from the manifest; staged image cleanup is pending")
         }
         return updated
     }
@@ -159,19 +173,29 @@ class CaptureSessionStore(private val directory: File) {
                 require(image.canonicalFile.parentFile == directory.canonicalFile && image.isFile) {
                     "Missing or unsafe image file: ${frame.fileName}"
                 }
-                require(image.length() == frame.byteSize && sha256(image) == frame.sha256) {
-                    "Image integrity check failed: ${frame.fileName}"
+                require(image.length() == frame.byteSize) {
+                    "Image size check failed: ${frame.fileName}"
                 }
                 zip.putNextEntry(ZipEntry("images/${frame.fileName}"))
+                val copiedDigest = MessageDigest.getInstance("SHA-256")
+                var copiedBytes = 0L
                 FileInputStream(image).use { input ->
                     val buffer = ByteArray(64 * 1024)
                     while (true) {
                         val read = input.read(buffer)
                         if (read < 0) break
-                        if (read > 0) zip.write(buffer, 0, read)
+                        if (read > 0) {
+                            zip.write(buffer, 0, read)
+                            copiedDigest.update(buffer, 0, read)
+                            copiedBytes += read
+                        }
                     }
                 }
                 zip.closeEntry()
+                val copiedSha256 = copiedDigest.digest().joinToString("") { "%02x".format(it) }
+                require(copiedBytes == frame.byteSize && copiedSha256 == frame.sha256) {
+                    "Image changed during dataset export: ${frame.fileName}"
+                }
             }
             zip.finish()
         }
