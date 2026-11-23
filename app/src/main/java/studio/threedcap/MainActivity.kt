@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import studio.threedcap.core.CapturePlanner
+import studio.threedcap.core.FrameQualityAnalyzer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
  private val planner = CapturePlanner()
  private val orientation = mutableStateOf(0f to 0f)
  private val capturedCount = mutableIntStateOf(0)
+ private val qualityStatus = mutableStateOf("ANALYZING")
  private var imageCapture: ImageCapture? = null
  private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok -> if (ok) setContent { Studio() } }
 
@@ -71,6 +73,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
   var previewView by remember { mutableStateOf<PreviewView?>(null) }
   val angles by orientation
   val count by capturedCount
+  val quality by qualityStatus
   val progress=planner.progress()
   val recommendation=planner.recommend(angles.first,angles.second)
   LaunchedEffect(previewView) {
@@ -80,7 +83,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     val provider=future.get()
     val preview=Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
     imageCapture=ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY).build()
-    try { provider.unbindAll(); provider.bindToLifecycle(this@MainActivity,CameraSelector.DEFAULT_BACK_CAMERA,preview,imageCapture) } catch (e: Exception) { e.printStackTrace() }
+    val analysis=ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
+    analysis.setAnalyzer(cameraExecutor) { frame ->
+     try {
+      val plane=frame.planes[0]
+      val buffer=plane.buffer.duplicate()
+      val bytes=ByteArray(buffer.remaining())
+      buffer.get(bytes)
+      val metrics=FrameQualityAnalyzer.analyzeLuma(bytes,frame.width,frame.height,plane.rowStride,plane.pixelStride)
+      runOnUiThread { qualityStatus.value=metrics.label }
+     } finally { frame.close() }
+    }
+    try { provider.unbindAll(); provider.bindToLifecycle(this@MainActivity,CameraSelector.DEFAULT_BACK_CAMERA,preview,imageCapture,analysis) } catch (e: Exception) { e.printStackTrace() }
    },ContextCompat.getMainExecutor(context))
   }
   MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF9BF7D4),secondary=Color(0xFF8CC8FF),background=Color(0xFF080D13),surface=Color(0xFF101923))) {
@@ -110,8 +124,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          }
         }
        }
-       Text("Follow the live direction cue. Capture when the target is aligned and the phone is steady.",color=Color.LightGray)
-       Button(onClick={takePhoto(angles.first,angles.second)},modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
+       Text(recommendation.instruction+" · FRAME QUALITY: "+quality,color=Color.LightGray)
+       Button(onClick={takePhoto(angles.first,angles.second)},enabled=recommendation.aligned,modifier=Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Default.Camera,null); Spacer(Modifier.width(10.dp)); Text("CAPTURE FRAME") }
       }
       "TOUR" -> {
        Text("VIRTUAL TOUR WORKSPACE",color=Color(0xFF9BF7D4))
