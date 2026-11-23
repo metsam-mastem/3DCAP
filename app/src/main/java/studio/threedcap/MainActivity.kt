@@ -187,6 +187,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       else -> {
        val manifest = remember(count) { captureSessionStore.load() }
        var pendingDelete by remember { mutableStateOf<String?>(null) }
+       var pendingRetake by remember { mutableStateOf<String?>(null) }
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
         Column {
          Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4))
@@ -252,6 +253,35 @@ class MainActivity : ComponentActivity(), SensorEventListener {
           }
          }
         }
+       }
+       if (pendingRetake != null) {
+        AlertDialog(
+         onDismissRequest={pendingRetake=null},
+         title={Text("Retake this exact view?")},
+         text={Text("The selected image will be removed from the session. Capture guidance will prioritize its original yaw and pitch so you can replace it.")},
+         confirmButton={
+          TextButton(onClick={
+           val name=pendingRetake
+           pendingRetake=null
+           val oldFrame=manifest?.frames?.firstOrNull { it.fileName == name }
+           if(oldFrame!=null) {
+            try {
+             val updated=captureSessionStore.removeFrame(oldFrame.fileName)
+             planner.reset()
+             updated.frames.forEach { planner.markCaptured(it.yawDegrees,it.pitchDegrees) }
+             planner.requestRetake(oldFrame.yawDegrees,oldFrame.pitchDegrees)
+             capturedCount.intValue=updated.frames.size
+             qualityStatus.value="RETARGETED · SAME VIEW"
+             tab="CAPTURE"
+            } catch(error:Exception) {
+             qualityStatus.value="RETAKE PREPARATION FAILED"
+             error.printStackTrace()
+            }
+           }
+          }) { Text("REMOVE AND RETAKE") }
+         },
+         dismissButton={TextButton(onClick={pendingRetake=null}) { Text("CANCEL") }}
+        )
        }
        if (pendingDelete != null) {
         AlertDialog(
