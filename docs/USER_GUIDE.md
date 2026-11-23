@@ -2,10 +2,10 @@
 
 Grant camera permission. Keep the object fixed and move around it. Follow the yaw/pitch target shown over the preview. Capture after the phone is stable and the object is sharply focused.
 
-The first planner uses 36 angular targets. This is only a starting point; it does not prove all object surfaces are visible.
+The initial planner uses 36 angular targets (12 azimuth sectors × 3 pitch bands). This is a coverage scaffold, not proof that every surface is visible or reconstructable.
 
-Images are written to app-private `files/captures`. They are not uploaded.
+Images and the session manifest are written to app-private `files/captures`; they are not uploaded. In Library, review sampled thumbnails and frame metadata. Delete removes a selected image after confirmation. **Retake same view** asks for confirmation, removes the previous image from the session, then prioritizes its original planner yaw/pitch target in Capture.
 
-The Tour tab is a placeholder in this first implementation. Panorama import, 360 navigation, hotspots and tour packaging remain future work.
+JSON and CSV exports contain metadata only. Dataset ZIP export contains `manifest.json`, `images/`, and `COLMAP_IMPORT.txt`. The guide includes example COLMAP CLI steps. The yaw/pitch values are capture-planner targets, not calibrated camera poses; the archive is not a precomputed COLMAP sparse model.
 
-Known limitations: no blur/exposure/overlap scoring yet; yaw is relative to the device frame and needs object-centered calibration; no session manifest, gallery review, dataset export or reconstruction pipeline yet. No APK has been built or device-tested.
+The Tour tab remains a placeholder. Panorama import/stitching, 360 navigation, hotspot editing and tour packaging are not implemented. No physical-device verification is claimed until tested on hardware.
