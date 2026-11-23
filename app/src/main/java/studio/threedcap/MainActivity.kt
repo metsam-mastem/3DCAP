@@ -15,12 +15,15 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -166,8 +169,78 @@ class MainActivity : ComponentActivity(), SensorEventListener {
        Surface(color=Color(0xFF101923),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth().weight(1f)) { Box(contentAlignment=Alignment.Center) { Text("360° TOUR CANVAS\nOffline scene graph foundation",color=Color.LightGray) } }
       }
       else -> {
-       Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4)); Text(count.toString()+" frames captured in this session",color=Color.White)
-       Text("Stored in app-private /captures. No upload.",color=Color.LightGray); Spacer(Modifier.weight(1f))
+       val manifest = remember(count) { captureSessionStore.load() }
+       var pendingDelete by remember { mutableStateOf<String?>(null) }
+       Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+        Column {
+         Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4))
+         Text("${manifest?.frames?.size ?: 0} verified frames · app-private storage",color=Color.White)
+        }
+        OutlinedButton(
+         enabled = manifest != null,
+         onClick = {
+          val json = captureSessionStore.exportManifestJson()
+          val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+           type = "application/json"
+           putExtra(android.content.Intent.EXTRA_SUBJECT, "3DCAP capture manifest")
+           putExtra(android.content.Intent.EXTRA_TEXT, json)
+          }
+          startActivity(android.content.Intent.createChooser(send, "Export capture manifest"))
+         }
+        ) { Text("EXPORT JSON") }
+       }
+       Text("Images remain on this device. Export shares metadata only; it does not upload images.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+       if (manifest == null || manifest.frames.isEmpty()) {
+        Box(Modifier.weight(1f).fillMaxWidth(),contentAlignment=Alignment.Center) {
+         Text("No captured frames yet. Use Capture to start a session.",color=Color.LightGray)
+        }
+       } else {
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+         items(manifest.frames.sortedBy { it.sequence },key={it.fileName}) { frame ->
+          Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
+           Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+             Text("FRAME ${frame.sequence+1}",color=Color(0xFF9BF7D4),style=MaterialTheme.typography.titleMedium)
+             Text("${frame.byteSize/1024} KB",color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
+            }
+            Text(frame.fileName,color=Color.White,style=MaterialTheme.typography.bodySmall)
+            Text("Yaw ${frame.yawDegrees}° · Pitch ${frame.pitchDegrees}°",color=Color.LightGray)
+            Text(frame.capturedAt,color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
+            Text("SHA-256 ${frame.sha256.take(20)}…",color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall,fontFamily=FontFamily.Monospace)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
+             TextButton(onClick={pendingDelete=frame.fileName}) { Text("DELETE FRAME",color=Color(0xFFFF9C9C)) }
+            }
+           }
+          }
+         }
+        }
+       }
+       if (pendingDelete != null) {
+        AlertDialog(
+         onDismissRequest={pendingDelete=null},
+         title={Text("Delete captured frame?")},
+         text={Text("The image and its manifest entry will be removed from this device. This cannot be undone.")},
+         confirmButton={
+          TextButton(onClick={
+           val name=pendingDelete
+           pendingDelete=null
+           if(name!=null) {
+            try {
+             val updated=captureSessionStore.removeFrame(name)
+             planner.reset()
+             updated.frames.forEach { planner.markCaptured(it.yawDegrees,it.pitchDegrees) }
+             capturedCount.intValue=updated.frames.size
+             qualityStatus.value="FRAME REMOVED"
+            } catch(error:Exception) {
+             qualityStatus.value="DELETE FAILED"
+             error.printStackTrace()
+            }
+           }
+          }) { Text("DELETE") }
+         },
+         dismissButton={TextButton(onClick={pendingDelete=null}) { Text("CANCEL") }}
+        )
+       }
       }
      }
     }
