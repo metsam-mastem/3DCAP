@@ -246,7 +246,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Text("Yaw ${frame.yawDegrees}° · Pitch ${frame.pitchDegrees}°",color=Color.LightGray)
             Text(frame.capturedAt,color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
             Text("SHA-256 ${frame.sha256.take(20)}…",color=Color(0xFF8CC8FF),style=MaterialTheme.typography.labelSmall,fontFamily=FontFamily.Monospace)
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+             TextButton(onClick={pendingRetake=frame.fileName}) { Text("RETAKE SAME VIEW",color=Color(0xFF9BF7D4)) }
              TextButton(onClick={pendingDelete=frame.fileName}) { Text("DELETE FRAME",color=Color(0xFFFF9C9C)) }
             }
            }
