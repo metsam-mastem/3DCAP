@@ -5,6 +5,7 @@ import org.json.JSONObject
 import studio.threedcap.core.CaptureManifest
 import studio.threedcap.core.CaptureManifestContract
 import studio.threedcap.core.CapturedFrameRecord
+import studio.threedcap.core.CameraCaptureMetadata
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -73,7 +74,7 @@ class CaptureSessionStore(private val directory: File) {
     }
 
     @Synchronized
-    fun record(file: File, yawDegrees: Float, pitchDegrees: Float): CaptureManifest {
+    fun record(file: File, yawDegrees: Float, pitchDegrees: Float, cameraMetadata: CameraCaptureMetadata? = null): CaptureManifest {
         val root = directory.canonicalFile
         val image = file.canonicalFile
         require(image.parentFile == root) { "Captured image must be directly inside the private capture directory" }
@@ -97,7 +98,8 @@ class CaptureSessionStore(private val directory: File) {
             pitchDegrees = pitchDegrees,
             byteSize = sizeBefore,
             sha256 = digest,
-            capturedAt = Instant.now().toString()
+            capturedAt = Instant.now().toString(),
+            cameraMetadata = cameraMetadata
         )
         val updated = CaptureManifestContract.validate(current.copy(frames = current.frames + frame))
         writeAtomically(updated)
@@ -142,7 +144,7 @@ class CaptureSessionStore(private val directory: File) {
     @Synchronized
     fun exportManifestCsv(): String {
         val current = CaptureManifestContract.validate(load() ?: throw IllegalStateException("No capture session exists"))
-        val header = "schema_version,session_id,created_at,sequence,file_name,relative_path,yaw_degrees,pitch_degrees,byte_size,sha256,captured_at"
+        val header = "schema_version,session_id,created_at,sequence,file_name,relative_path,yaw_degrees,pitch_degrees,byte_size,sha256,captured_at,image_width,image_height,exif_orientation,camera_make,camera_model,focal_length_mm,focal_length_35mm,aperture,exposure_time_seconds,iso"
         val rows = current.frames.sortedBy { it.sequence }.map { frame ->
             listOf(
                 current.schemaVersion.toString(),
@@ -155,7 +157,17 @@ class CaptureSessionStore(private val directory: File) {
                 frame.pitchDegrees.toString(),
                 frame.byteSize.toString(),
                 frame.sha256,
-                csv(frame.capturedAt)
+                csv(frame.capturedAt),
+                frame.cameraMetadata?.imageWidth?.toString().orEmpty(),
+                frame.cameraMetadata?.imageHeight?.toString().orEmpty(),
+                frame.cameraMetadata?.orientation?.toString().orEmpty(),
+                csv(frame.cameraMetadata?.cameraMake.orEmpty()),
+                csv(frame.cameraMetadata?.cameraModel.orEmpty()),
+                frame.cameraMetadata?.focalLengthMm?.toString().orEmpty(),
+                frame.cameraMetadata?.focalLength35Mm?.toString().orEmpty(),
+                frame.cameraMetadata?.aperture?.toString().orEmpty(),
+                frame.cameraMetadata?.exposureTimeSeconds?.toString().orEmpty(),
+                frame.cameraMetadata?.iso?.toString().orEmpty()
             ).joinToString(",")
         }
         return (listOf(header) + rows).joinToString("\n")
@@ -232,6 +244,15 @@ class CaptureSessionStore(private val directory: File) {
         }
     }
 
+    private fun JSONObject.optIntOrNull(key: String): Int? =
+        if (!has(key) || isNull(key)) null else optInt(key)
+
+    private fun JSONObject.optDoubleOrNull(key: String): Double? =
+        if (!has(key) || isNull(key)) null else optDouble(key)
+
+    private fun JSONObject.optStringOrNull(key: String): String? =
+        if (!has(key) || isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
+
     private fun csv(value: String): String {
         val escaped = value.replace("\"", "\"\"")
         return "\"" + escaped + "\""
@@ -274,7 +295,21 @@ class CaptureSessionStore(private val directory: File) {
                     pitchDegrees = item.getDouble("pitch_degrees").toFloat(),
                     byteSize = item.getLong("byte_size"),
                     sha256 = item.getString("sha256"),
-                    capturedAt = item.getString("captured_at")
+                    capturedAt = item.getString("captured_at"),
+                    cameraMetadata = item.optJSONObject("camera_metadata")?.let { metadata ->
+                        CameraCaptureMetadata(
+                            imageWidth = metadata.optIntOrNull("image_width"),
+                            imageHeight = metadata.optIntOrNull("image_height"),
+                            orientation = metadata.optIntOrNull("orientation"),
+                            cameraMake = metadata.optStringOrNull("camera_make"),
+                            cameraModel = metadata.optStringOrNull("camera_model"),
+                            focalLengthMm = metadata.optDoubleOrNull("focal_length_mm")?.toFloat(),
+                            focalLength35Mm = metadata.optIntOrNull("focal_length_35mm"),
+                            aperture = metadata.optDoubleOrNull("aperture")?.toFloat(),
+                            exposureTimeSeconds = metadata.optDoubleOrNull("exposure_time_seconds"),
+                            iso = metadata.optIntOrNull("iso")
+                        )
+                    }
                 )
             }
             CaptureManifestContract.validate(
@@ -301,7 +336,23 @@ class CaptureSessionStore(private val directory: File) {
                 .put("pitch_degrees", frame.pitchDegrees.toDouble())
                 .put("byte_size", frame.byteSize)
                 .put("sha256", frame.sha256)
-                .put("captured_at", frame.capturedAt))
+                .put("captured_at", frame.capturedAt)
+                .apply {
+                    frame.cameraMetadata?.let { metadata ->
+                        put("camera_metadata", JSONObject().apply {
+                            metadata.imageWidth?.let { put("image_width", it) }
+                            metadata.imageHeight?.let { put("image_height", it) }
+                            metadata.orientation?.let { put("orientation", it) }
+                            metadata.cameraMake?.let { put("camera_make", it) }
+                            metadata.cameraModel?.let { put("camera_model", it) }
+                            metadata.focalLengthMm?.let { put("focal_length_mm", it.toDouble()) }
+                            metadata.focalLength35Mm?.let { put("focal_length_35mm", it) }
+                            metadata.aperture?.let { put("aperture", it.toDouble()) }
+                            metadata.exposureTimeSeconds?.let { put("exposure_time_seconds", it) }
+                            metadata.iso?.let { put("iso", it) }
+                        })
+                    }
+                })
         }
         return JSONObject()
             .put("schema_version", manifest.schemaVersion)
