@@ -45,3 +45,18 @@ Capture and project data are stored locally. Network access is not required by t
 ## License
 
 Project licensing and third-party notices are being established before integrating external source code. Research references are not copied code.
+
+
+## Windows COLMAP runner
+
+The exported dataset can be reconstructed on a Windows PC with a compatible COLMAP installation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\windows\Invoke-3DCapColmap.ps1 `
+  -ZipPath "D:\capture\3dcap-dataset.zip" `
+  -WorkspacePath "D:\3dcap-work\session-001" `
+  -ColmapPath "C:\COLMAP\COLMAP.bat" `
+  -Profile DRAFT
+```
+
+The runner validates each source image against the manifest's size and SHA-256 before invoking COLMAP. It produces a sparse model and dense `fused.ply` when the dataset and hardware permit. Use a fresh, empty workspace. This script is not yet Windows-tested.
