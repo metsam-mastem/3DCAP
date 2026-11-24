@@ -28,13 +28,11 @@ The local library lists sampled thumbnails and frame metadata, supports confirme
 ## Deferred / not claimed
 COLMAP reconstruction, calibrated camera intrinsics/extrinsics, panorama stitching/viewer, hotspot editing, and physical-device verification remain incomplete. The ZIP is a source-image input package with usage guidance, not a COLMAP sparse model. No `cameras.txt`, `images.txt`, or `points3D.txt` is fabricated. CI and physical-device verification are separate gates.
 
-
 ## Calibration profile contract (implemented; calibration solver deferred)
 Per-camera calibration is stored as a separate typed profile, not inferred from EXIF. The profile records image dimensions, camera model, fx/fy/cx/cy, distortion coefficients, calibration pattern, sample-view count, reprojection error and timestamp. The contract currently accepts at least 8 calibration views and reprojection error <= 2.0 px. These are initial acceptance limits, not a claim that any profile has been measured or validated on a device. Checkerboard/ChArUco detection, intrinsic solving, profile persistence and UI are not implemented yet.
 
 ## Dataset quality engine (implemented as a pure analysis contract)
 The first deterministic report evaluates the existing 36 planner cells, repeated cells, missing cells, EXIF availability and mixed image dimensions. Readiness is INSUFFICIENT below 35% coverage, REVIEW below 80% or when warnings exist, and READY only at >=80% with no warnings. This report does not measure feature overlap, surface visibility, blur, exposure, parallax or reconstructability; those require separate image/geometry signals and reconstruction feedback.
-
 
 ## Calibration acquisition quality gate
 A pure Kotlin sample-set analyzer now rejects sets with fewer than 8 sharp samples, fewer than 8 distinct 45-degree yaw bins, fewer than 3 distinct tilt bands, invalid orientation/dimensions, or mixed image dimensions. This is a capture-set diversity gate only; it does not detect a checkerboard/ChArUco pattern or solve camera intrinsics.
@@ -42,10 +40,9 @@ A pure Kotlin sample-set analyzer now rejects sets with fewer than 8 sharp sampl
 ## Desktop reconstruction runner
 `tools/windows/Invoke-3DCapColmap.ps1` validates ZIP paths, manifest schema, every image's byte size and SHA-256, then runs COLMAP feature extraction, exhaustive matching, sparse mapping, undistortion, PatchMatch stereo and fusion. It writes per-stage logs and a JSON summary. It requires a fresh empty workspace and a compatible COLMAP Windows executable. No Windows execution has been performed in this environment.
 
-
 ## Optional Camera2 factory sensor calibration
-The Android capture adapter now reads Camera2 factory intrinsics when the selected CameraX camera exposes them: fx/fy/cx/cy/skew, camera ID, pre-correction and active sensor-array rectangles, sensor orientation, and the optional five-coefficient Brown-Conrady distortion model (API 28+). These values are preserved as raw sensor-coordinate metadata in the versioned session manifest and CSV. Absence is normal and does not block capture.
+The Android capture adapter reads Camera2 factory intrinsics when the selected CameraX camera exposes them: fx/fy/cx/cy/skew, camera ID, pre-correction and active sensor-array rectangles, sensor orientation, and the optional five-coefficient Brown-Conrady distortion model (API 28+). These values are preserved as raw sensor-coordinate metadata in the versioned session manifest and CSV. Absence is normal and does not block capture.
 
 **Coordinate boundary:** Android defines factory intrinsics in the sensor pre-correction active-array coordinate system. The adapter does not transform them for CameraX JPEG crop, scale, rotation, or distortion correction. They are not calibration values for the saved JPEG and must not be passed to COLMAP as image intrinsics until that mapping is measured and validated. The calibration profile contract remains separate from factory metadata.
 
-The Camera2 bridge uses the CameraX 1.4.1 legacy Camera2CameraInfo interop surface to keep the existing AGP 8.7.3 / compileSdk 35 build stack unchanged. This avoids upgrading the Android build toolchain solely for optional metadata.
+The Camera2 bridge uses `Camera2CameraInfo.from(CameraInfo)` from CameraX 1.6.0. CameraX 1.6.0 requires compileSdk 36 and Android Gradle Plugin 8.9.1 or newer; CI uses Gradle 8.11.1. The application target SDK remains 35, independently of compileSdk.
