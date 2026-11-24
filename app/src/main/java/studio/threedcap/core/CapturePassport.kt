@@ -36,6 +36,7 @@ data class CapturePassportCheck(
 
 data class CapturePassport(
     val schemaVersion: Int = 1,
+    val capturePlanId: String = "spherical-12x3-v1",
     val passportId: String,
     val generatedAt: String,
     val session: CapturePassportSession,
@@ -69,6 +70,7 @@ object CapturePassportContract {
     fun validate(passport: CapturePassport, manifest: CaptureManifest? = null): CapturePassport {
         require(passport.schemaVersion == 1) { "Unsupported Passport schema version" }
         require(idPattern.matches(passport.passportId)) { "Invalid Passport ID" }
+        require(passport.capturePlanId.matches(Regex("^[a-z0-9][a-z0-9._-]{2,63}$"))) { "Invalid capture plan ID" }
         require(isInstant(passport.generatedAt)) { "generatedAt must be an ISO-8601 instant" }
         require(passport.analyzerId == "3dcap-capture-quality") { "Unsupported analyzer ID" }
         require(passport.analyzerVersion.isNotBlank() && passport.analyzerVersion.length <= 32) {
