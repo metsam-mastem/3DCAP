@@ -66,4 +66,4 @@ The app records EXIF facts and, when exposed by the selected camera, optional Ca
 
 
 ## Capture Passport
-The next feature slice adds a portable, versioned quality-evidence report to each capture dataset. Read the [product specification](docs/CAPTURE_PASSPORT_SPEC.md), [quality evidence model](docs/QUALITY_EVIDENCE_MODEL.md), [JSON/ZIP data contract](docs/CAPTURE_PASSPORT_DATA_CONTRACT.md), and [implementation/verification plan](docs/CAPTURE_PASSPORT_IMPLEMENTATION_PLAN.md). Documentation is committed; implementation and verification remain separate gates.
+The next feature slice adds a portable, versioned quality-evidence report to each capture dataset. Read the [product specification](docs/CAPTURE_PASSPORT_SPEC.md), [quality evidence model](docs/QUALITY_EVIDENCE_MODEL.md), [JSON/ZIP data contract](docs/CAPTURE_PASSPORT_DATA_CONTRACT.md), and [implementation/verification plan](docs/CAPTURE_PASSPORT_IMPLEMENTATION_PLAN.md). Core Passport models, analysis, JSON/text rendering, ZIP integration and Library UI are now present in the development branch. Hosted CI and physical-device verification remain pending.
