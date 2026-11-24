@@ -70,6 +70,7 @@ object CapturePassportContract {
     fun validate(passport: CapturePassport, manifest: CaptureManifest? = null): CapturePassport {
         require(passport.schemaVersion == 1) { "Unsupported Passport schema version" }
         require(idPattern.matches(passport.passportId)) { "Invalid Passport ID" }
+        require(passport.passportId == "passport-${passport.session.sessionId}") { "Passport ID does not match its session" }
         require(passport.capturePlanId.matches(Regex("^[a-z0-9][a-z0-9._-]{2,63}$"))) { "Invalid capture plan ID" }
         require(isInstant(passport.generatedAt)) { "generatedAt must be an ISO-8601 instant" }
         require(passport.analyzerId == "3dcap-capture-quality") { "Unsupported analyzer ID" }
@@ -95,6 +96,12 @@ object CapturePassportContract {
         require(coverage.missingCells.distinct().size == coverage.missingCells.size) {
             "Missing planner cells must be unique"
         }
+        require(coverage.coveredCells + coverage.missingCells.size == coverage.totalCells) {
+            "Covered and missing planner cells must account for the complete plan"
+        }
+        require(coverage.duplicateCellCount <= passport.session.frameCount) {
+            "Duplicate planner-cell count exceeds the frame count"
+        }
         coverage.missingCells.forEach {
             require(it.yawDegrees in 0 until 360 && it.yawDegrees % 30 == 0) { "Invalid missing-cell yaw" }
             require(it.pitchBand in listOf(-25, 15, 55)) { "Invalid missing-cell pitch band" }
@@ -112,6 +119,11 @@ object CapturePassportContract {
                 "Invalid check limitations"
             }
             require(check.evidence.size <= 40) { "Too many evidence fields" }
+            require(check.evidence.keys.all { it.isNotBlank() && it.length <= 64 }) { "Invalid evidence field name" }
+            require(check.remediation == null || check.remediation.length <= 500) { "Remediation text is too long" }
+        }
+        require(passport.limitations.size <= 50 && passport.limitations.all { it.length <= 500 }) {
+            "Invalid Passport limitations"
         }
 
         if (passport.readiness == PassportReadiness.READY) {
