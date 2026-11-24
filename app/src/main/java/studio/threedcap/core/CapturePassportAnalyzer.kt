@@ -108,7 +108,7 @@ object CapturePassportAnalyzer {
             },
             evidence = mapOf(
                 "known_dimension_pair_count" to dimensions.size,
-                "known_frame_count" to manifest.frames.count { it.cameraMetadata?.imageWidth != null && it.cameraMetadata.imageHeight != null }
+                "known_frame_count" to manifest.frames.count { it.cameraMetadata?.imageWidth != null && it.cameraMetadata?.imageHeight != null }
             ),
             limitations = listOf("EXIF dimensions may differ from the post-rotation or cropped pixel dimensions consumed downstream.")
         )
