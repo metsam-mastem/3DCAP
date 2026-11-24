@@ -18,7 +18,7 @@ object Camera2CalibrationReader {
     @OptIn(ExperimentalCamera2Interop::class)
     fun read(cameraInfo: CameraInfo): Camera2SensorCalibration? {
         return try {
-            val camera2 = Camera2CameraInfo.fromCameraInfo(cameraInfo)
+            val camera2 = Camera2CameraInfo.from(cameraInfo)
             val intrinsic = camera2.getCameraCharacteristic(
                 CameraCharacteristics.LENS_INTRINSIC_CALIBRATION
             ) ?: return null
