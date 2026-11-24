@@ -119,6 +119,19 @@ class CapturePassportTest {
         assertTrue(encoded.contains("\"schema_version\": 1"))
     }
 
+    @Test fun readyPassportCannotSkipRequiredIntegrityEvidence() {
+        val passport = CapturePassportAnalyzer.analyze(
+            manifest(fullCoverageFrames()),
+            "2026-11-24T01:00:00Z"
+        ).copy(readiness = PassportReadiness.READY)
+        try {
+            CapturePassportContract.validate(passport)
+            fail("Expected READY without verified image integrity to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
+    }
+
     @Test fun validatorRejectsSessionFrameCountMismatch() {
         val passport = CapturePassportAnalyzer.analyze(
             manifest(listOf(frame(0, 0f))),
