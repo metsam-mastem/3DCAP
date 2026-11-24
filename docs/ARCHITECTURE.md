@@ -46,3 +46,16 @@ The Android capture adapter reads Camera2 factory intrinsics when the selected C
 **Coordinate boundary:** Android defines factory intrinsics in the sensor pre-correction active-array coordinate system. The adapter does not transform them for CameraX JPEG crop, scale, rotation, or distortion correction. They are not calibration values for the saved JPEG and must not be passed to COLMAP as image intrinsics until that mapping is measured and validated. The calibration profile contract remains separate from factory metadata.
 
 The Camera2 bridge uses `Camera2CameraInfo.from(CameraInfo)` from CameraX 1.6.0. CameraX 1.6.0 requires compileSdk 36 and Android Gradle Plugin 8.9.1 or newer; CI uses Gradle 8.11.1. The application target SDK remains 35, independently of compileSdk.
+
+
+## Capture Passport architecture (specified; implementation pending)
+The Capture Passport is a derived, versioned evidence artifact. It does not replace CaptureManifest schema v1. The existing DatasetQualityAnalyzer remains the source for planner-cell coverage, repeated cells, repeated SHA-256, EXIF absence and mixed known dimensions. A typed Passport analyzer maps these values into check findings and readiness.
+
+Data flow:
+CaptureManifest → DatasetQualityAnalyzer → CapturePassportAnalyzer → immutable Passport model → passport.json + passport-report.txt → dataset ZIP.
+
+The export pipeline must stream image bytes once, compute byte count and SHA-256 while writing, and only then mark image_file_integrity PASS. Before that check runs, integrity is NOT_MEASURED. Any missing, unsafe, changed or unregistered image fails export. JSON and text report must be rendered from the same Passport model.
+
+Passport schema and analyzer version are independent from the Capture Manifest schema. Planner coverage is not geometric visibility. Blur, overlap, occlusion, parallax, camera calibration validity and reconstruction outcome remain explicitly NOT_MEASURED until separate analyzers are implemented and verified.
+
+See CAPTURE_PASSPORT_SPEC.md, QUALITY_EVIDENCE_MODEL.md, CAPTURE_PASSPORT_DATA_CONTRACT.md and CAPTURE_PASSPORT_IMPLEMENTATION_PLAN.md.
