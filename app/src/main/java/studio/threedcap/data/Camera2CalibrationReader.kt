@@ -15,7 +15,7 @@ import studio.threedcap.core.Camera2SensorCalibrationContract
  * this reader deliberately does not map them to the saved JPEG.
  */
 object Camera2CalibrationReader {
-    @OptIn(ExperimentalCamera2Interop::class)
+    @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
     fun read(cameraInfo: CameraInfo): Camera2SensorCalibration? {
         return try {
             val camera2 = Camera2CameraInfo.from(cameraInfo)
