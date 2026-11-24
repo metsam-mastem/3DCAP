@@ -63,3 +63,7 @@ The runner validates each source image against the manifest's size and SHA-256 b
 ## Camera metadata boundary
 
 The app records EXIF facts and, when exposed by the selected camera, optional Camera2 factory sensor calibration. Camera2 factory intrinsics remain in the Android sensor pre-correction active-array coordinate system; they are not transformed into saved-JPEG or COLMAP calibration parameters. The Camera2 bridge currently uses CameraX 1.6.0; its Android build requirements are SDK 36, AGP 8.9.1 and Gradle 8.11.1.
+
+
+## Capture Passport
+The next feature slice adds a portable, versioned quality-evidence report to each capture dataset. Read the [product specification](docs/CAPTURE_PASSPORT_SPEC.md), [quality evidence model](docs/QUALITY_EVIDENCE_MODEL.md), [JSON/ZIP data contract](docs/CAPTURE_PASSPORT_DATA_CONTRACT.md), and [implementation/verification plan](docs/CAPTURE_PASSPORT_IMPLEMENTATION_PLAN.md). Documentation is committed; implementation and verification remain separate gates.
