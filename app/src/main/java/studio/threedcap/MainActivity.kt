@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    try {
     val output=contentResolver.openOutputStream(uri) ?: throw IllegalStateException("Could not open export destination")
     captureSessionStore.writeDatasetZip(output)
-    qualityStatus.value="DATASET ZIP EXPORTED"
+    qualityStatus.value="DATASET + PASSPORT EXPORTED"
    } catch (error: Exception) {
     qualityStatus.value="DATASET EXPORT FAILED"
     error.printStackTrace()
@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
         Column {
          Text("LOCAL CAPTURE LIBRARY",color=Color(0xFF9BF7D4))
-         Text("${manifest?.frames?.size ?: 0} verified frames · app-private storage",color=Color.White)
+         Text("${manifest?.frames?.size ?: 0} registered frames · app-private storage",color=Color.White)
         }
         Column(horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)) {
          OutlinedButton(
