@@ -127,6 +127,12 @@ object CapturePassportContract {
                 val outcome = passport.checks.firstOrNull { it.checkId == id }?.outcome
                 require(outcome == PassportCheckOutcome.PASS) { "READY requires $id to PASS" }
             }
+            val integrityCheck = passport.checks.first { it.checkId == "image_file_integrity" }
+            val verifiedCount = (integrityCheck.evidence["verified_frame_count"] as? Number)?.toInt()
+            val failedCount = (integrityCheck.evidence["failed_frame_count"] as? Number)?.toInt()
+            require(verifiedCount == passport.session.frameCount && failedCount == 0) {
+                "READY requires verified image count to match the session frame count"
+            }
             require(passport.checks.none {
                 it.outcome == PassportCheckOutcome.WARN || it.outcome == PassportCheckOutcome.FAIL
             }) { "READY cannot contain warnings or failures" }
