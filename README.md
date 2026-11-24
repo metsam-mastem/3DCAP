@@ -22,10 +22,10 @@ This repository was empty at initialization. The first implementation milestone 
 
 ## Build
 
-Requires JDK 17 and Android SDK 35.
+Requires JDK 17, Android SDK 36, Android Gradle Plugin 8.9.1 and Gradle 8.11.1. The repository currently uses the installed Gradle command in CI (no Gradle wrapper is checked in).
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
+gradle testDebugUnitTest lintDebug assembleDebug
 ```
 
 ## Privacy
@@ -45,3 +45,25 @@ Capture and project data are stored locally. Network access is not required by t
 ## License
 
 Project licensing and third-party notices are being established before integrating external source code. Research references are not copied code.
+
+## Windows COLMAP runner
+
+The exported dataset can be reconstructed on a Windows PC with a compatible COLMAP installation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\windows\Invoke-3DCapColmap.ps1 `
+  -ZipPath "D:\capture\3dcap-dataset.zip" `
+  -WorkspacePath "D:\3dcap-work\session-001" `
+  -ColmapPath "C:\COLMAP\COLMAP.bat" `
+  -Profile DRAFT
+```
+
+The runner validates each source image against the manifest's size and SHA-256 before invoking COLMAP. It produces a sparse model and dense `fused.ply` when the dataset and hardware permit. Use a fresh, empty workspace. This script is not yet Windows-tested.
+
+## Camera metadata boundary
+
+The app records EXIF facts and, when exposed by the selected camera, optional Camera2 factory sensor calibration. Camera2 factory intrinsics remain in the Android sensor pre-correction active-array coordinate system; they are not transformed into saved-JPEG or COLMAP calibration parameters. The Camera2 bridge currently uses CameraX 1.6.1. This patch release includes a fix for the CameraX 1.6.0 `ListenableFuture` compile-classpath regression; Android build requirements remain SDK 36, AGP 8.9.1 and Gradle 8.11.1.
+
+
+## Capture Passport
+The next feature slice adds a portable, versioned quality-evidence report to each capture dataset. Read the [product specification](docs/CAPTURE_PASSPORT_SPEC.md), [quality evidence model](docs/QUALITY_EVIDENCE_MODEL.md), [JSON/ZIP data contract](docs/CAPTURE_PASSPORT_DATA_CONTRACT.md), and [implementation/verification plan](docs/CAPTURE_PASSPORT_IMPLEMENTATION_PLAN.md). Core Passport models, analysis, JSON/text rendering, ZIP integration and Library UI are now present in the development branch. Hosted CI and physical-device verification remain pending.
