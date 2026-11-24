@@ -190,7 +190,7 @@ class CaptureSessionStoreTest {
             assertTrue(entries.containsKey("passport.json"))
             assertTrue(entries.containsKey("passport-report.txt"))
             val passportJson = String(entries.getValue("passport.json"), Charsets.UTF_8)
-            assertTrue(passportJson.contains("\\\"schema_version\\\": 1"))
+            assertTrue(passportJson.contains("\"schema_version\": 1"))
             assertTrue(passportJson.contains("image_file_integrity"))
             val passportReport = String(entries.getValue("passport-report.txt"), Charsets.UTF_8)
             assertTrue(passportReport.contains("3DCAP CAPTURE PASSPORT"))
