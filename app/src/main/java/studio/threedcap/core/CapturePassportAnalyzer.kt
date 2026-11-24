@@ -130,13 +130,14 @@ object CapturePassportAnalyzer {
             limitations = listOf("Structural validation does not prove that source image bytes still match recorded hashes.")
         )
 
-        val integrityVerified = imageIntegrity?.let {
+        val integrityVerified = manifest.frames.isNotEmpty() && imageIntegrity?.let {
             it.verified == true &&
                 it.verifiedFrameCount == manifest.frames.size &&
                 it.failedFrameCount == 0
         } == true
         val integrityOutcome = when {
-            imageIntegrity == null || imageIntegrity.verified == null -> PassportCheckOutcome.NOT_MEASURED
+            manifest.frames.isEmpty() || imageIntegrity == null || imageIntegrity.verified == null ->
+                PassportCheckOutcome.NOT_MEASURED
             integrityVerified -> PassportCheckOutcome.PASS
             else -> PassportCheckOutcome.FAIL
         }
