@@ -116,6 +116,7 @@ class CapturePassportTest {
         val encoded = CapturePassportJson.encode(original)
         val decoded = CapturePassportJson.decode(encoded)
         assertEquals(original, decoded)
+        assertEquals("spherical-12x3-v1", decoded.capturePlanId)
         assertTrue(encoded.contains("\"schema_version\": 1"))
     }
 
