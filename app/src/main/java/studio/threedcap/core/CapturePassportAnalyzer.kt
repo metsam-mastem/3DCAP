@@ -130,10 +130,15 @@ object CapturePassportAnalyzer {
             limitations = listOf("Structural validation does not prove that source image bytes still match recorded hashes.")
         )
 
-        val integrityOutcome = when (imageIntegrity?.verified) {
-            true -> PassportCheckOutcome.PASS
-            false -> PassportCheckOutcome.FAIL
-            null -> PassportCheckOutcome.NOT_MEASURED
+        val integrityVerified = imageIntegrity?.let {
+            it.verified == true &&
+                it.verifiedFrameCount == manifest.frames.size &&
+                it.failedFrameCount == 0
+        } == true
+        val integrityOutcome = when {
+            imageIntegrity == null || imageIntegrity.verified == null -> PassportCheckOutcome.NOT_MEASURED
+            integrityVerified -> PassportCheckOutcome.PASS
+            else -> PassportCheckOutcome.FAIL
         }
         checks += check(
             id = "image_file_integrity",
@@ -142,7 +147,7 @@ object CapturePassportAnalyzer {
             severity = if (integrityOutcome == PassportCheckOutcome.FAIL) PassportCheckSeverity.BLOCKER else PassportCheckSeverity.INFO,
             summary = when (integrityOutcome) {
                 PassportCheckOutcome.PASS -> "All registered source images passed export-time size and SHA-256 verification."
-                PassportCheckOutcome.FAIL -> "One or more source images failed export-time integrity verification."
+                PassportCheckOutcome.FAIL -> "Source image integrity evidence is incomplete or one or more images failed verification."
                 else -> "Source image bytes have not yet been verified during export."
             },
             evidence = mapOf(
@@ -178,9 +183,12 @@ object CapturePassportAnalyzer {
             it.severity == PassportCheckSeverity.BLOCKER && it.outcome == PassportCheckOutcome.FAIL
         }
         val hasWarnings = checks.any { it.outcome == PassportCheckOutcome.WARN }
+        val requiredMeasurementMissing = checks.any {
+            it.checkId == "image_dimensions_consistency" && it.outcome == PassportCheckOutcome.NOT_MEASURED
+        }
         val readiness = when {
             report.frameCount == 0 || report.coveragePercent < 35 || hasIntegrityFailure -> PassportReadiness.INSUFFICIENT
-            report.coveragePercent < 80 || hasWarnings || imageIntegrity?.verified != true -> PassportReadiness.REVIEW
+            report.coveragePercent < 80 || hasWarnings || !integrityVerified || requiredMeasurementMissing -> PassportReadiness.REVIEW
             else -> PassportReadiness.READY
         }
 
