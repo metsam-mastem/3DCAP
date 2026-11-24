@@ -20,6 +20,7 @@ A top-level directory may be omitted to preserve the current exporter convention
 
     {
       "schema_version": 1,
+      "capture_plan_id": "spherical-12x3-v1",
       "passport_id": "passport-<session-derived-id>",
       "generated_at": "2026-11-24T00:00:00Z",
       "session": {
@@ -85,7 +86,7 @@ All values above are illustrative, not measurements from a real session.
 
 Reject unsupported schema, invalid identity, session/count mismatch, invalid enums, out-of-range percentages, negative counts, covered > total, duplicate missing cells, malformed timestamps, unsafe paths, and unknown outcomes interpreted as positive.
 
-Readers should preserve unknown additive fields and display unknown checks as unrecognized rather than assuming PASS.
+Readers may ignore unknown additive fields and must display unknown checks as unrecognized rather than assuming PASS.
 
 ## 5. Integrity evidence
 
