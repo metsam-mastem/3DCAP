@@ -223,6 +223,7 @@ class CaptureSessionStore(private val directory: File) {
             )
             zip.closeEntry()
 
+            var verifiedFrameCount = 0
             current.frames.sortedBy { it.sequence }.forEach { frame ->
                 val image = File(directory, frame.fileName)
                 require(image.canonicalFile.parentFile == directory.canonicalFile && image.isFile) {
@@ -251,7 +252,25 @@ class CaptureSessionStore(private val directory: File) {
                 require(copiedBytes == frame.byteSize && copiedSha256 == frame.sha256) {
                     "Image changed during dataset export: ${frame.fileName}"
                 }
+                verifiedFrameCount += 1
             }
+
+            val passport = studio.threedcap.core.CapturePassportAnalyzer.analyze(
+                current,
+                Instant.now().toString(),
+                studio.threedcap.core.ImageIntegrityEvidence(
+                    verified = verifiedFrameCount == current.frames.size,
+                    verifiedFrameCount = verifiedFrameCount,
+                    failedFrameCount = current.frames.size - verifiedFrameCount
+                )
+            )
+            zip.putNextEntry(ZipEntry("passport.json"))
+            zip.write(studio.threedcap.core.CapturePassportJson.encode(passport).toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+
+            zip.putNextEntry(ZipEntry("passport-report.txt"))
+            zip.write(studio.threedcap.core.PassportTextReport.render(passport).toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
             zip.finish()
         }
     }
