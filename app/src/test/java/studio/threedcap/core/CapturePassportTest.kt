@@ -89,6 +89,16 @@ class CapturePassportTest {
         assertEquals("FAIL", passport.check("image_file_integrity")?.outcome?.name)
     }
 
+    @Test fun integrityCannotPassWhenVerifiedFrameCountDoesNotMatchManifest() {
+        val passport = CapturePassportAnalyzer.analyze(
+            manifest(fullCoverageFrames()),
+            "2026-11-24T01:00:00Z",
+            ImageIntegrityEvidence(verified = true, verifiedFrameCount = 35)
+        )
+        assertEquals("FAIL", passport.check("image_file_integrity")?.outcome?.name)
+        assertEquals(PassportReadiness.INSUFFICIENT, passport.readiness)
+    }
+
     @Test fun fullCoverageWithVerifiedFilesCanBecomeReady() {
         val passport = CapturePassportAnalyzer.analyze(
             manifest(fullCoverageFrames()),
