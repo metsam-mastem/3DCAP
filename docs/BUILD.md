@@ -1,14 +1,14 @@
 # Build 3DCAP
 
 ## Android Studio
-1. Install Android Studio with Android SDK Platform 35 and JDK 17.
+1. Install Android Studio with Android SDK Platform 36 and JDK 17.
 2. Clone the repository and check out `feat/android-guided-capture-mvp`.
 3. Open the repository root as an Android Studio project.
-4. Allow Gradle sync (Android Gradle Plugin 8.7.3 / Gradle 8.9).
+4. Allow Gradle sync (Android Gradle Plugin 8.9.1 / Gradle 8.11.1).
 5. Run the `app` configuration on an Android 8.0+ device with a rear camera.
 
 ## Command line
-With Gradle 8.9 and Android SDK 35 installed:
+With Gradle 8.11.1 and Android SDK 36 installed:
 
 ```bash
 gradle testDebugUnitTest
