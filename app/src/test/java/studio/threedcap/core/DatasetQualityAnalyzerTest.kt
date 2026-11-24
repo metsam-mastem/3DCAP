@@ -11,7 +11,7 @@ class DatasetQualityAnalyzerTest {
         yawDegrees = yaw,
         pitchDegrees = pitch,
         byteSize = 1000,
-        sha256 = "a".repeat(64),
+        sha256 = sequence.toString(16).repeat(64).take(64),
         capturedAt = "2026-11-23T12:00:00Z"
     )
 
@@ -28,6 +28,13 @@ class DatasetQualityAnalyzerTest {
         val report = DatasetQualityAnalyzer.analyze(listOf(frame(0, 0f), frame(1, 1f)))
         assertEquals(1, report.duplicateCellCount)
         assertEquals(1, report.coveredCells)
+    }
+
+    @Test fun flagsRepeatedImageContentAcrossDifferentPlannerCells() {
+        val first = frame(0, 0f)
+        val second = frame(1, 30f).copy(sha256 = first.sha256)
+        val report = DatasetQualityAnalyzer.analyze(listOf(first, second))
+        assertTrue(report.warnings.any { it.contains("identical image content") })
     }
 
     @Test fun flagsMixedImageDimensionsAndMissingExifAsReviewSignals() {
