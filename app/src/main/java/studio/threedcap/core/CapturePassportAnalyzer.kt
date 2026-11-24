@@ -38,7 +38,9 @@ object CapturePassportAnalyzer {
                 "missing_cell_count" to report.missingCells.size
             ),
             limitations = geometricLimitations,
-            remediation = if (report.missingCells.isNotEmpty()) "Capture the listed missing planner targets." else null
+            remediation = if (coverageOutcome != PassportCheckOutcome.PASS && report.missingCells.isNotEmpty()) {
+                "Capture the listed missing planner targets."
+            } else null
         )
 
         checks += check(
@@ -65,7 +67,9 @@ object CapturePassportAnalyzer {
             limitations = listOf("SHA-256 equality detects byte-identical files, not visually similar images with different encodings.")
         )
 
-        val framesWithExif = manifest.frames.count { it.cameraMetadata != null }
+        val framesWithExif = manifest.frames.count { frame ->
+            frame.cameraMetadata?.hasExifFields() == true
+        }
         val missingExif = manifest.frames.size - framesWithExif
         checks += check(
             id = "exif_availability",
@@ -81,19 +85,20 @@ object CapturePassportAnalyzer {
                 missingExif > 0 -> "$missingExif frame(s) have no readable EXIF metadata."
                 else -> "Readable camera metadata is present for all frames."
             },
-            evidence = mapOf("frames_with_metadata" to framesWithExif, "frames_without_metadata" to missingExif),
+            evidence = mapOf("frames_with_exif" to framesWithExif, "frames_without_exif" to missingExif),
             limitations = listOf("EXIF availability does not establish camera calibration or pose accuracy.")
         )
 
-        val dimensions = manifest.frames.mapNotNull { frame ->
+        val dimensionFrames = manifest.frames.mapNotNull { frame ->
             val metadata = frame.cameraMetadata ?: return@mapNotNull null
             val width = metadata.imageWidth
             val height = metadata.imageHeight
             if (width != null && height != null) width to height else null
-        }.toSet()
+        }
+        val dimensions = dimensionFrames.toSet()
         val dimensionOutcome = when {
-            dimensions.isEmpty() -> PassportCheckOutcome.NOT_MEASURED
-            dimensions.size > 1 -> PassportCheckOutcome.WARN
+            dimensionFrames.isEmpty() -> PassportCheckOutcome.NOT_MEASURED
+            dimensions.size > 1 || dimensionFrames.size < manifest.frames.size -> PassportCheckOutcome.WARN
             else -> PassportCheckOutcome.PASS
         }
         checks += check(
@@ -108,7 +113,7 @@ object CapturePassportAnalyzer {
             },
             evidence = mapOf(
                 "known_dimension_pair_count" to dimensions.size,
-                "known_frame_count" to manifest.frames.count { it.cameraMetadata?.imageWidth != null && it.cameraMetadata?.imageHeight != null }
+                "known_frame_count" to dimensionFrames.size
             ),
             limitations = listOf("EXIF dimensions may differ from the post-rotation or cropped pixel dimensions consumed downstream.")
         )
@@ -224,6 +229,12 @@ object CapturePassportAnalyzer {
         )
         return CapturePassportContract.validate(passport, manifest)
     }
+
+    private fun CameraCaptureMetadata.hasExifFields(): Boolean =
+        imageWidth != null || imageHeight != null || orientation != null ||
+            !cameraMake.isNullOrBlank() || !cameraModel.isNullOrBlank() ||
+            focalLengthMm != null || focalLength35Mm != null || aperture != null ||
+            exposureTimeSeconds != null || iso != null
 
     private fun check(
         id: String,
