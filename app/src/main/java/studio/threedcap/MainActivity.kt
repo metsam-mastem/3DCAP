@@ -15,6 +15,7 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import studio.threedcap.core.CapturePlanner
-import studio.threedcap.core.DatasetQualityAnalyzer
+import studio.threedcap.core.CapturePassportAnalyzer
+import studio.threedcap.core.CapturePassportJson
+import studio.threedcap.core.PassportTextReport
+import studio.threedcap.core.PassportReadiness
 import studio.threedcap.core.FrameQualityAnalyzer
 import studio.threedcap.core.OrientationCalibration
 import studio.threedcap.core.StabilityGate
@@ -204,7 +208,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       }
       else -> {
        val manifest = remember(count) { captureSessionStore.load() }
-       val datasetQuality = remember(manifest) { manifest?.let { DatasetQualityAnalyzer.analyze(it.frames) } }
+       val passport = remember(manifest) {
+        manifest?.let { CapturePassportAnalyzer.analyze(it, java.time.Instant.now().toString()) }
+       }
+       var showPassportDetails by remember { mutableStateOf(false) }
        var pendingDelete by remember { mutableStateOf<String?>(null) }
        var pendingRetake by remember { mutableStateOf<String?>(null) }
        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
@@ -244,20 +251,47 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
        }
        Text("JSON/CSV exports contain metadata only. Dataset ZIP includes the manifest and captured images; nothing is uploaded automatically.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
-       datasetQuality?.let { report ->
+       passport?.let { report ->
         Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
          Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
           Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-           Text("CAPTURE DATASET CHECK",color=Color(0xFF9BF7D4),style=MaterialTheme.typography.labelLarge)
-           Text(report.readiness.name,color=when(report.readiness.name) { "READY" -> Color(0xFF9BF7D4); "REVIEW" -> Color(0xFFFFD27D); else -> Color(0xFFFF9C9C) })
+           Text("CAPTURE PASSPORT",color=Color(0xFF9BF7D4),style=MaterialTheme.typography.labelLarge)
+           Text(report.readiness.name,color=when(report.readiness) { PassportReadiness.READY -> Color(0xFF9BF7D4); PassportReadiness.REVIEW -> Color(0xFFFFD27D); else -> Color(0xFFFF9C9C) })
           }
-          Text("${report.coveragePercent}% planner coverage · ${report.coveredCells}/${report.totalCells} cells · ${report.duplicateCellCount} duplicate(s)",color=Color.White)
-          LinearProgressIndicator(progress={report.coveragePercent/100f},modifier=Modifier.fillMaxWidth())
-          report.warnings.take(3).forEach { warning ->
-           Text("• $warning",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+          Text("${report.coverage.percent}% planner coverage · ${report.coverage.coveredCells}/${report.coverage.totalCells} cells · ${report.session.frameCount} frames",color=Color.White)
+          LinearProgressIndicator(progress={report.coverage.percent/100f},modifier=Modifier.fillMaxWidth())
+          report.checks.filter { it.outcome.name == "WARN" || it.outcome.name == "FAIL" }.take(3).forEach { finding ->
+           Text("• ${finding.summary}",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
           }
-          Text("Coverage diagnostic only; not a reconstruction guarantee.",color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
+          Text("Image-byte integrity: NOT_MEASURED until dataset export. Geometric visibility and reconstruction are not assessed.",color=Color(0xFFFFD27D),style=MaterialTheme.typography.labelSmall)
+          Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+           TextButton(onClick={showPassportDetails=true}) { Text("VIEW PASSPORT",color=Color(0xFF9BF7D4)) }
+           Text("ID ${report.passportId.take(24)}",color=Color.LightGray,style=MaterialTheme.typography.labelSmall)
+          }
          }
+        }
+        if (showPassportDetails) {
+         AlertDialog(
+          onDismissRequest={showPassportDetails=false},
+          title={Text("Capture Passport · ${report.readiness.name}")},
+          text={
+           Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
+            Text(PassportTextReport.render(report),style=MaterialTheme.typography.bodySmall,fontFamily=FontFamily.Monospace)
+           }
+          },
+          confirmButton={TextButton(onClick={showPassportDetails=false}) { Text("CLOSE") }},
+          dismissButton={
+           TextButton(onClick={
+            val json=CapturePassportJson.encode(report)
+            val send=android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+             type="application/json"
+             putExtra(android.content.Intent.EXTRA_SUBJECT,"3DCAP Capture Passport")
+             putExtra(android.content.Intent.EXTRA_TEXT,json)
+            }
+            startActivity(android.content.Intent.createChooser(send,"Share Passport preview"))
+           }) { Text("SHARE JSON") }
+          }
+         )
         }
        }
        if (manifest == null || manifest.frames.isEmpty()) {
