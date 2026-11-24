@@ -69,6 +69,18 @@ class CapturePassportTest {
         assertEquals("WARN", passport.check("image_dimensions_consistency")?.outcome?.name)
     }
 
+    @Test fun partialExifAndDimensionMetadataRemainWarnings() {
+        val frames = listOf(
+            frame(0, 0f),
+            frame(1, 30f),
+            frame(2, 60f, metadata = CameraCaptureMetadata())
+        )
+        val passport = CapturePassportAnalyzer.analyze(manifest(frames), "2026-11-24T01:00:00Z")
+        assertEquals("WARN", passport.check("exif_availability")?.outcome?.name)
+        assertEquals("WARN", passport.check("image_dimensions_consistency")?.outcome?.name)
+        assertEquals(2, passport.check("image_dimensions_consistency")?.evidence?.get("known_frame_count"))
+    }
+
     @Test fun geometricAndReconstructionPropertiesAreNeverReportedAsPassing() {
         val passport = CapturePassportAnalyzer.analyze(
             manifest(fullCoverageFrames()),
