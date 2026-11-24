@@ -251,7 +251,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
          ) { Text("EXPORT DATASET ZIP") }
         }
        }
-       Text("JSON/CSV exports contain metadata only. Dataset ZIP includes the manifest and captured images; nothing is uploaded automatically.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+       Text("JSON/CSV exports contain metadata only. Dataset ZIP includes the Capture Manifest, Passport evidence and registered source images; nothing is uploaded automatically.",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
        passport?.let { report ->
         Surface(color=Color(0xFF101923),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) {
          Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
