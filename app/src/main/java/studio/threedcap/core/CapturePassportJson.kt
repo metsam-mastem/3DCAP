@@ -29,6 +29,7 @@ object CapturePassportJson {
         }
         return JSONObject()
             .put("schema_version", passport.schemaVersion)
+            .put("capture_plan_id", passport.capturePlanId)
             .put("passport_id", passport.passportId)
             .put("generated_at", passport.generatedAt)
             .put("session", JSONObject()
@@ -88,6 +89,7 @@ object CapturePassportJson {
         }
         val passport = CapturePassport(
             schemaVersion = root.getInt("schema_version"),
+            capturePlanId = root.getString("capture_plan_id"),
             passportId = root.getString("passport_id"),
             generatedAt = root.getString("generated_at"),
             session = CapturePassportSession(
