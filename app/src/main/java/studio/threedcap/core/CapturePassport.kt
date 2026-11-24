@@ -1,6 +1,7 @@
 package studio.threedcap.core
 
 import java.time.Instant
+import kotlin.math.roundToInt
 
 enum class PassportReadiness { INSUFFICIENT, REVIEW, READY }
 enum class PassportCheckOutcome { PASS, WARN, FAIL, NOT_MEASURED }
@@ -84,6 +85,10 @@ object CapturePassportContract {
         require(coverage.totalCells > 0) { "Total planner cells must be positive" }
         require(coverage.coveredCells in 0..coverage.totalCells) { "Covered cell count is out of range" }
         require(coverage.percent in 0..100) { "Coverage percentage is out of range" }
+        require(coverage.percent == (coverage.coveredCells * 100f / coverage.totalCells).roundToInt()) {
+            "Coverage percentage does not match covered and total cells"
+        }
+        require(coverage.totalCells == 36) { "Unsupported planner grid size" }
         require(coverage.duplicateCellCount >= 0) { "Duplicate cell count cannot be negative" }
         require(coverage.missingCells.distinct().size == coverage.missingCells.size) {
             "Missing planner cells must be unique"
@@ -107,6 +112,25 @@ object CapturePassportContract {
             require(check.evidence.size <= 40) { "Too many evidence fields" }
         }
 
+        if (passport.readiness == PassportReadiness.READY) {
+            require(coverage.percent >= 80) { "READY requires at least 80% planner coverage" }
+            val requiredChecks = setOf(
+                "planner_coverage",
+                "planner_cell_duplicates",
+                "image_content_duplicates",
+                "exif_availability",
+                "image_dimensions_consistency",
+                "manifest_integrity",
+                "image_file_integrity"
+            )
+            requiredChecks.forEach { id ->
+                val outcome = passport.checks.firstOrNull { it.checkId == id }?.outcome
+                require(outcome == PassportCheckOutcome.PASS) { "READY requires $id to PASS" }
+            }
+            require(passport.checks.none {
+                it.outcome == PassportCheckOutcome.WARN || it.outcome == PassportCheckOutcome.FAIL
+            }) { "READY cannot contain warnings or failures" }
+        }
         manifest?.let {
             CaptureManifestContract.validate(it)
             require(passport.session.sessionId == it.sessionId) { "Passport session ID does not match manifest" }
