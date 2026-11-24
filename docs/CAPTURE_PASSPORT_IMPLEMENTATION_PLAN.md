@@ -7,6 +7,7 @@ This feature adds a portable evidence/report layer around the existing capture m
 Existing foundations confirmed in this branch:
 - CaptureManifest schema v1 with frame sequence, planner yaw/pitch, byte size, SHA-256, timestamp and optional camera metadata.
 - DatasetQualityAnalyzer with 36 planner cells, duplicate-cell count, duplicate SHA-256 warning, missing EXIF warning and mixed-dimensions warning.
+- Capture Passport analyzer now checks actual EXIF fields rather than merely the presence of a metadata container, and warns when dimensions are present for only a subset of frames.
 - CaptureSessionStore ZIP export with manifest, COLMAP notes and streaming image integrity checks.
 - Existing tests for coverage, repeated cells, duplicate content, EXIF/dimension warnings and empty sessions.
 
