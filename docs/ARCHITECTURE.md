@@ -48,7 +48,7 @@ The Android capture adapter reads Camera2 factory intrinsics when the selected C
 The Camera2 bridge uses `Camera2CameraInfo.from(CameraInfo)` from CameraX 1.6.0. CameraX 1.6.0 requires compileSdk 36 and Android Gradle Plugin 8.9.1 or newer; CI uses Gradle 8.11.1. The application target SDK remains 35, independently of compileSdk.
 
 
-## Capture Passport architecture (specified; implementation pending)
+## Capture Passport architecture (core and export implemented in development branch; verification pending)
 The Capture Passport is a derived, versioned evidence artifact. It does not replace CaptureManifest schema v1. The existing DatasetQualityAnalyzer remains the source for planner-cell coverage, repeated cells, repeated SHA-256, EXIF absence and mixed known dimensions. A typed Passport analyzer maps these values into check findings and readiness.
 
 Data flow:
