@@ -45,7 +45,7 @@ The Android capture adapter reads Camera2 factory intrinsics when the selected C
 
 **Coordinate boundary:** Android defines factory intrinsics in the sensor pre-correction active-array coordinate system. The adapter does not transform them for CameraX JPEG crop, scale, rotation, or distortion correction. They are not calibration values for the saved JPEG and must not be passed to COLMAP as image intrinsics until that mapping is measured and validated. The calibration profile contract remains separate from factory metadata.
 
-The Camera2 bridge uses `Camera2CameraInfo.from(CameraInfo)` from CameraX 1.6.0. CameraX 1.6.0 requires compileSdk 36 and Android Gradle Plugin 8.9.1 or newer; CI uses Gradle 8.11.1. The application target SDK remains 35, independently of compileSdk.
+The Camera2 bridge uses `Camera2CameraInfo.from(CameraInfo)` from CameraX 1.6.1. This patch release fixes the 1.6.0 `ListenableFuture` compile-classpath regression. CameraX 1.6.0+ requires compileSdk 36 and Android Gradle Plugin 8.9.1 or newer; CI uses Gradle 8.11.1. The application target SDK remains 35, independently of compileSdk.
 
 
 ## Capture Passport architecture (core and export implemented in development branch; verification pending)
