@@ -41,7 +41,7 @@ Create/open session → capture frames → open Passport → inspect status, cov
 - Generation timestamp
 - Analyzer ID/version
 - App version/build identifier when available
-- Capture-plan identifier/version
+- Capture-plan identifier/version (MVP: spherical-12x3-v1)
 
 ### Capture summary
 - Registered frame count
