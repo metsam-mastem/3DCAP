@@ -95,8 +95,12 @@ No Gradle wrapper is checked in. Hosted CI uses JDK 17 and Gradle 8.11.1. Record
 - Privacy leakage: no GPS or unique device IDs by default.
 - Over-scope: defer blur, overlap, occlusion, parallax, calibration and reconstruction.
 
-## 8. Implementation order
+## 8. Implementation order and current state
 
-P0 Documentation → P1 Core contracts → P2 ZIP export integration → P3 UI → P4 CI/device verification.
+- P0 Documentation: DONE — product specification, evidence model, data contract, architecture, requirements and user guide are committed.
+- P1 Core contracts: IMPLEMENTED IN BRANCH — typed model, analyzer, validator, JSON serializer and text renderer; test execution is pending.
+- P2 ZIP export integration: IMPLEMENTED IN BRANCH — Passport entries are added after streamed image size/hash verification; integration tests are committed.
+- P3 UI: IMPLEMENTED IN BRANCH — Library summary, details dialog and shareable JSON preview are committed.
+- P4 CI/device verification: NOT RUN / PENDING — no successful hosted CI result or physical-device test is claimed.
 
-Do not begin P2 until P1 tests pass. Do not call the feature complete until P1–P4 evidence is recorded.
+Do not call the feature complete until P1–P4 evidence is recorded.
