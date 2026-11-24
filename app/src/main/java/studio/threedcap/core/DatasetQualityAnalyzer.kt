@@ -40,6 +40,15 @@ object DatasetQualityAnalyzer {
         val duplicates = (assigned.size - uniqueCells.size).coerceAtLeast(0)
         if (duplicates > 0) warnings += "$duplicates frame(s) repeat an already-covered planner cell"
 
+        val duplicateImages = frames
+            .groupingBy { it.sha256.lowercase() }
+            .eachCount()
+            .values
+            .sumOf { (it - 1).coerceAtLeast(0) }
+        if (duplicateImages > 0) {
+            warnings += "$duplicateImages frame(s) contain identical image content (SHA-256)"
+        }
+
         val metadataMissing = frames.count { it.cameraMetadata == null }
         if (metadataMissing > 0) warnings += "$metadataMissing frame(s) have no readable EXIF metadata"
 
