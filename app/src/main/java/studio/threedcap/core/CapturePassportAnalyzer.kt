@@ -154,7 +154,11 @@ object CapturePassportAnalyzer {
             evidence = mapOf(
                 "verified_frame_count" to (imageIntegrity?.verifiedFrameCount ?: 0),
                 "failed_frame_count" to (imageIntegrity?.failedFrameCount ?: 0),
-                "reason_code" to (imageIntegrity?.reasonCode ?: "NOT_RUN")
+                "reason_code" to (imageIntegrity?.reasonCode ?: when (integrityOutcome) {
+                    PassportCheckOutcome.FAIL -> "INTEGRITY_EVIDENCE_MISMATCH"
+                    PassportCheckOutcome.NOT_MEASURED -> "NOT_RUN"
+                    else -> "NONE"
+                })
             ),
             limitations = listOf("Hash verification establishes byte identity against the manifest, not authenticity of the capture event.")
         )
