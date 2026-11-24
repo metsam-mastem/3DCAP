@@ -136,7 +136,7 @@ class CapturePassportTest {
         val passport = CapturePassportAnalyzer.analyze(
             manifest(listOf(frame(0, 0f))),
             "2026-11-24T01:00:00Z"
-        ).copy(session = CapturePassportSession("capture-other", "2026-11-24T00:00:00Z", 1, 1))
+        ).copy(session = CapturePassportSession("capture-passport-test", "2026-11-24T00:00:00Z", 1, 0))
         try {
             CapturePassportContract.validate(passport, manifest(listOf(frame(0, 0f))))
             fail("Expected session mismatch to be rejected")
