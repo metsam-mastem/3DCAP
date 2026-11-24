@@ -35,3 +35,7 @@ Use a new empty workspace folder for every run. The script validates the archive
 When the selected camera provides factory calibration, 3DCAP saves it with each captured frame: sensor intrinsics, lens distortion coefficients (where supported), sensor active-array rectangles, camera ID and sensor orientation. Some camera devices do not provide all of these fields; the absence of the data does not block capture.
 
 These values refer to the Android sensor's pre-correction coordinate system. They are shown as raw factory metadata only. 3DCAP does not yet map them to the saved JPEG's crop, scale, rotation and distortion pipeline. Do not treat them as the saved image's calibrated intrinsics or COLMAP camera parameters.
+
+
+## Capture Passport (specified; implementation pending)
+The Passport will be available from a session/library detail and will summarize planner coverage, missing targets, repeated planner cells, duplicate image content, EXIF availability and known dimension consistency. Each finding will state what was measured and what it cannot prove. The Passport will be included in dataset ZIP as passport.json and passport-report.txt. It will not claim that a dataset is reconstructable: feature overlap, blur, occlusion, parallax, calibration accuracy and reconstruction success are not measured by the MVP. See the Capture Passport documents in docs/.
